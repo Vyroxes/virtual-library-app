@@ -18,8 +18,9 @@ dist-ssr
 *.sqlite
 instance/
 *.rar
-.vscode/*
+.vscode/
 __pycache__/
+.pytest_cache/
 !.vscode/extensions.json
 .env
 .idea

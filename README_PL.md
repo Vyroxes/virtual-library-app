@@ -1,6 +1,6 @@
 🇬🇧 [English version](README.md)
 
-## 📚 Aplikacja Wirtualnej Biblioteki
+## 📚 Aplikacja wirtualnej biblioteki
 
 W pełni funkcjonalna aplikacja webowa do zarządzania osobistą wirtualną biblioteką, zbudowana w nowoczesnej architekturze backendowej, z dużym naciskiem na bezpieczeństwo, skalowalność i doświadczenie użytkownika.
 

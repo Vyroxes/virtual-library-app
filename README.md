@@ -90,16 +90,16 @@ Administrators have access to advanced user management features.
 
 ## 🧱 System Architecture
 
-The application follows a client-server architecture:
-
+The application follows a client-server architecture
 * Frontend (React) communicates with backend via REST API
 * Backend (Flask) handles business logic, authentication, and data processing
 * Database (SQLite) stores users, books, reviews, and subscriptions
-* External services:
-- OpenRouter (AI features)
-- Google Custom Search (images)
-- Stripe (payments)
-- OAuth providers (GitHub, Discord)
+
+External services:
+* OpenRouter (AI features)
+* Google Custom Search (images)
+* Stripe (payments)
+* OAuth providers (GitHub, Discord)
 
 ---
 
@@ -200,22 +200,22 @@ backend/
 
 ### Required libraries
 
-- `Authlib`
-- `bcrypt`
-- `Flask`
-- `Flask-Bcrypt`
-- `Flask-Cors`
-- `Flask-Discord`
-- `Flask-JWT-Extended`
-- `Flask-Limiter`
-- `Flask-SQLAlchemy`
-- `Flask-Talisman`
-- `python-dotenv`
-- `pytz`
-- `requests`
-- `SQLAlchemy`
-- `stripe`
-- `pytest`
+* `Authlib` – library for handling OAuth authentication (e.g. GitHub, Discord) and authorization
+* `bcrypt` – tool for secure password hashing
+* `Flask` – lightweight web framework for building Python APIs
+* `Flask-Bcrypt` – Flask integration for bcrypt password hashing
+* `Flask-Cors` - enables Cross-Origin Resource Sharing
+* `Flask-Discord` – integration for Discord OAuth login
+* `Flask-JWT-Extended` – handles JSON Web Tokens (JWT) for authentication and authorization
+* `Flask-Limiter` – provides rate limiting to protect against abuse and attacks
+* `Flask-SQLAlchemy` – Flask integration with SQLAlchemy ORM for database management
+* `Flask-Talisman` – adds security headers and enforces HTTPS
+* `python-dotenv` – loads environment variables from a `.env` file
+* `pytz` – timezone handling library
+* `requests` – library for making HTTP requests to external APIs
+* `SQLAlchemy` – Object-Relational Mapping (ORM) library for database interaction
+* `stripe` – integration with Stripe payment processing API
+* `pytest` – framework for writing and running tests
 
 ### Installing dependencies
   You can install them individually with specific versions:

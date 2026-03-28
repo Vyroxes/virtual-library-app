@@ -1,4 +1,4 @@
-🇵🇱 [Polish version](README_PL.md)
+🇬🇧 [English version](README.md)
 
 ## 📚 Virtual Library App
 
@@ -88,24 +88,10 @@ Administrators have access to advanced user management features.
 
 ---
 
-## 🧱 System Architecture
-
-The application follows a client-server architecture:
-
-* Frontend (React) communicates with backend via REST API
-* Backend (Flask) handles business logic, authentication, and data processing
-* Database (SQLite) stores users, books, reviews, and subscriptions
-* External services:
-- OpenRouter (AI features)
-- Google Custom Search (images)
-- Stripe (payments)
-- OAuth providers (GitHub, Discord)
-
----
-
-### Backend Architecture
+## 🧱 Backend Architecture
 
 The backend follows a structured **MVC-like architecture (REST API only)**:
+
 ```
 backend/
 ├── controllers/
@@ -285,20 +271,18 @@ npm run dev
 
 ## 🧠 Future Improvements
 
-* Switch to PostgreSQL for production-grade data storage and scalability
-* Add Docker support for containerized deployment
-* Implement CI/CD pipeline (e.g. GitHub Actions) for automated testing and deployment
-* Deploy frontend (React) using a production-ready platform (e.g. Vercel, Netlify) and connect it with the backend API
-* Add email verification and two-factor authentication (2FA) for enhanced security
-* Improve caching and performance (e.g. Redis integration)
-* Extend OAuth authentication by adding additional providers (e.g. Google, Facebook, Microsoft) to improve user accessibility and login flexibility
+* Switch to PostgreSQL (production-ready DB)
+* Docker support
+* CI/CD pipeline
+* Frontend deployment (React)
+* Email verification & 2FA
 
 ---
 
-## 📄 License
+## 📄 Licencja
 
-This project is for educational and portfolio purposes.
+Projekt ma charakter edukacyjny i służy celom portfolio.
 
 ---
 
-📌 Author: Michał Rusek (Vyroxes)
+📌 Autor: Michał Rusek (Vyroxes)

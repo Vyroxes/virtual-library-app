@@ -27,6 +27,8 @@
     animation: slideInUp 0.8s ease-out forwards;
     animation-delay: 0.3s;
     opacity: 0;
+    color: #dddddd;
+    padding: 0 120px;
 }
 
 .home-container::before {
@@ -52,7 +54,7 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
     position: relative;
     min-height: 400px;
 }
@@ -143,7 +145,7 @@
 .slider-indicators {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     margin-top: 15px;
 }
 
@@ -160,16 +162,16 @@
     margin: 0;
 }
 
-.pause-button {
+.pause-button, .unpause-button {
     border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: large;
-    padding: 0.5em 0.7em;
-}
-
-.unpause-button {
-    border-radius: 50%;
-    font-size: large;
-    padding: 0.5em 0.7em;
+    line-height: 40px;
+    padding: 0;
 }
 
 .indicator {

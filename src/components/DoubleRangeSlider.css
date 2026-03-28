@@ -1,11 +1,12 @@
 .MuiSlider-thumb {
     background-color: #6496FF;
     border: 1px solid black;
+    transition: all 0.3s ease;
 }
 
 .MuiSlider-thumb:hover {
-    background-color: #4F81FF;
-    border: 1px solid white;
+    background-color: #6797ff;
+    border: 1px solid #1946a6;
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 

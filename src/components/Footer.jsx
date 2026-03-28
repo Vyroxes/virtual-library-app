@@ -4,8 +4,7 @@ const Footer = () => {
   return (
     <footer className="footer">
       <p>
-        {new Date().getFullYear()}. Strona do zarządzania kolekcją książek
-        stworzona przez Michała Ruska, Łukasza Iwańskiego i Michała Zająca
+        © {new Date().getFullYear()} Michał Rusek
       </p>
     </footer>
   );

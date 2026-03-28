@@ -1,1 +1,1 @@
-Projekt z przedmiotu backend development - aplikacja do zarządzania kolekcją książek, backend we Flasku w Pythonie
+Aplikacja webowa do zarządzania kolekcją książek w React, backend we Flasku w Pythonie

@@ -22,10 +22,10 @@
     font-size: 0.9em !important;
   }
 
-@media (max-aspect-ratio: 9/10) {
+@media (max-width: 1262px) {
     .MuiSlider-thumb {
-        width: 40px !important;
-        height: 40px !important;
+        width: 25px !important;
+        height: 25px !important;
     }
 
     .MuiSlider-track {

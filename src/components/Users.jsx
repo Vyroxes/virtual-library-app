@@ -38,7 +38,8 @@ const Users = () => {
     };
 
     const filteredUsers = users.filter((user) =>
-        user.username.toLowerCase().includes(search.toLowerCase())
+        user.username.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase())
     );
 
     if(loading) {
@@ -52,7 +53,7 @@ const Users = () => {
                     type="text"
                     id="search"
                     name="search"
-                    placeholder="Szukaj użytkownika"
+                    placeholder="Nazwa użytkownika lub email"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -67,7 +68,7 @@ const Users = () => {
             </div>
             <ul className="users-list">
                 {filteredUsers.length === 0 && (
-                    <a className='no-users-found '>Brak innych użytkowników</a>
+                    <a className='no-users-found '>Brak użytkowników</a>
                 )}
                 {filteredUsers.map((user, index) => (
                     <li

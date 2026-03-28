@@ -102,7 +102,7 @@ def log_request():
     if request.path.startswith('/static') or request.path == '/favicon.ico':
         return
     
-    timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    timestamp = datetime.now(pytz.timezone('Europe/Warsaw')).strftime('%d-%m-%Y %H:%M:%S')
     
     log_entry = f"{request_counter}. {timestamp} - {request.method} {request.path}\n"
     log_entry += f"IP: {request.remote_addr}\n"
@@ -115,7 +115,7 @@ def log_request():
                 sanitized_body = body.copy() if isinstance(body, dict) else body
                 if isinstance(sanitized_body, dict):
                     for key in sanitized_body:
-                        if 'password' in key.lower() or 'token' in key.lower():
+                        if 'password' in key.lower() or 'token' in key.lower() or 'access_token' in key.lower() or 'refresh_token' in key.lower():
                             sanitized_body[key] = '[HIDDEN]'
                 log_entry += f"Body: {json.dumps(sanitized_body, indent=2, ensure_ascii=False)}\n"
         except Exception as e:

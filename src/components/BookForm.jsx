@@ -1,23 +1,25 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { authAxios } from '../utils/Auth';
 
-import './AddBook.css';
+import './BookForm.css';
 
-const AddBook = () =>
-{
+const BookForm = ({ mode }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { id } = useParams();
+
+    const apiUrl = import.meta.env.VITE_API_URL;
+
     const [addBookMethod, setAddBookMethod] = useState("");
-    const [loading, setLoading] = useState(false);
     const [showCover, setShowCover] = useState(false);
     const [showCoverSearch, setShowCoverSearch] = useState(false);
     const [coverSearchResults, setCoverSearchResults] = useState([]);
     const [coverSearchLoading, setCoverSearchLoading] = useState(false);
     const [coverSearchError, setCoverSearchError] = useState("");
     const [checkedList, setCheckedList] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-
     const [jsonFileContent, setJsonFileContent] = useState(null);
     const [isbn, setISBN] = useState("");
     const [cover, setCover] = useState("");
@@ -28,39 +30,39 @@ const AddBook = () =>
     const [date, setDate] = useState("");
     const [pages, setPages] = useState("");
     const [desc, setDesc] = useState("");
-
-    const apiUrl = import.meta.env.VITE_API_URL;
+    const [book, setBook] = useState([]);
 
     const genresList = [
-        "fantasy",
-        "science-fiction",
-        "horror",
-        "romans",
-        "thriller",
-        "kryminał",
-        "historia",
-        "poradnik",
-        "dla dzieci",
-        "dla młodzieży",
-        "komiks",
-        "manga",
-        "na podstawie gry",
-        "lektura",
-        "beletrystyka",
-        "poezja",
-        "erotyczne",
-        "literatura piękna",
-        "przygoda",
-        "sensacja",
-        "biografia",
-        "reportaż",
-        "popularnonaukowe",
+        "fantasy", "science-fiction", "horror", "romans", "thriller", "kryminał", "historia", "poradnik", "dla dzieci", "dla młodzieży", "komiks", "manga", "na podstawie gry", "lektura", "beletrystyka", "poezja", "erotyczne", "literatura piękna", "przygoda", "sensacja", "biografia", "reportaż", "popularnonaukowe"
     ];
 
-    useEffect(() => 
-    {
+    useEffect(() => {
         setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
+
+    useEffect(() => {
+        if (mode === "edit") {
+            checkBookID();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (mode === "edit" && book && Object.keys(book).length > 0) {
+            setISBN(book.isbn);
+            setCover(book.cover || "/unknown.jpg");
+            setTitle(book.title);
+            setAuthor(book.author);
+            setGenres(book.genres);
+            setPublisher(book.publisher);
+            const parts = book.date.split("-");
+            const [day, month, year] = parts;
+            const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            setDate(formattedDate);
+            setPages(book.pages);
+            setDesc(book.desc);
+            setCheckedList(book.genres.split(", "));
+        }
+    }, [book]);
 
     const handleCoverSearch = async () => {
         setCoverSearchLoading(true);
@@ -68,10 +70,7 @@ const AddBook = () =>
         setCoverSearchResults([]);
         try {
             const response = await authAxios.get(`${apiUrl}/api/search-covers`, {
-                params: {
-                    title,
-                    author
-                }
+                params: { title, author }
             });
             if (response.status === 200 && Array.isArray(response.data)) {
                 setCoverSearchResults(response.data);
@@ -90,26 +89,186 @@ const AddBook = () =>
         setShowCoverSearch(false);
     };
 
-    const handleFileUpload = (file) =>
-    {
+    const handleFileUpload = (file) => {
         if (!file) return;
-
         if (file.size > 5 * 1024 * 1024) {
             alert("Plik jest za duży. Maksymalny rozmiar to 5 MB.");
             return;
         }
-
         const reader = new FileReader();
-        reader.onloadend = () => {
-            setCover(reader.result);
-        };
-
-        reader.onerror = () => {
-            console.error("Błąd podczas odczytu pliku: ", error);
-            alert("Wystąpił problem z odczytem pliku.");
-        };
-
+        reader.onloadend = () => { setCover(reader.result); };
+        reader.onerror = () => { alert("Wystąpił problem z odczytem pliku."); };
         reader.readAsDataURL(file);
+    };
+
+    const checkBookID = async () => {
+        try {
+            let response;
+            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
+            response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
+            if (response.status === 200) {
+                if (response.data['exists'] === false) {
+                    if (location.pathname.startsWith("/bc-edit-book/")) {
+                        navigate(`/bc-book-details/${id}`);
+                    } else if (location.pathname.startsWith("/wl-edit-book/")) {
+                        navigate(`/wl-book-details/${id}`);
+                    }
+                } else {
+                    fetchBook();
+                }
+            } else {
+                navigate('/home');
+            }
+        } catch (error) {
+            console.error('Błąd podczas sprawdzania ID książki: ', error);
+            navigate('/home');
+        }
+    };
+
+    const fetchBook = async () => {
+        setLoading(true);
+        try {
+            let response;
+            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
+            response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
+            if (response.status === 200) {
+                setBook(response.data);
+            }
+        } catch (error) {
+            console.error('Błąd podczas pobierania szczegółów książki: ', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGenreChange = (event) => {
+        const { checked, value } = event.target;
+        setCheckedList((prev) => checked ? [...prev, value] : prev.filter((genre) => genre !== value));
+    };
+
+    const autoFillBookInfo = async () => {
+        if (!title || !author) return;
+        try {
+            setLoading(true);
+            const response = await authAxios.post(`${apiUrl}/api/generate-book-info`, { title, author });
+            setPublisher(response.data.publisher || '');
+            setDate(response.data.date || '');
+            setPages(response.data.pages ? response.data.pages.toString() : '');
+            setISBN(response.data.isbn || '');
+            setGenres(response.data.genres || '');
+            setDesc(response.data.desc || '');
+            if (response.data.genres) {
+                const receivedGenres = response.data.genres.split(',').map(g => g.trim()).filter(g => g.length > 0);
+                setCheckedList(receivedGenres.filter(g => genresList.includes(g)));
+            }
+        } catch (err) {
+            console.error('Błąd podczas generowania danych o książce: ', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (checkedList.length === 0) {
+            alert("Musisz wybrać przynajmniej jeden gatunek.");
+            return;
+        }
+        if (mode === "edit") {
+            await onSubmitEdit();
+        } else {
+            await onSubmitAdd();
+        }
+    };
+
+    const onSubmitAdd = async (book) => {
+        try {
+            let response;
+            const type = location.pathname === "/bc-add-book" ? "bc" : "wl";
+            if (book) {
+                response = await authAxios.post(`${apiUrl}/api/add-book/${type}`, book); 
+            }
+            else {
+                response = await authAxios.post(`${apiUrl}/api/add-book/${type}`, {
+                    title, author, cover, genres, publisher, date, pages, isbn, desc
+                });
+            }
+            if (response.status === 201) {
+                if(addBookMethod !== "json") {
+                    if(location.pathname === "/bc-add-book") navigate('/book-collection');
+                    else if(location.pathname === "/wl-add-book") navigate('/wish-list');
+                }
+            }
+
+            return response;
+        } catch (error) {
+            console.error("Błąd podczas dodawania książki: ", error);
+            throw error;
+        }
+    };
+
+    const onSubmitEdit = async () => {
+        try {
+            let response;
+            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
+            response = await authAxios.patch(`${apiUrl}/api/edit-book/${type}/${id}`, {
+                title, author, cover, genres, publisher, date, pages, isbn, desc
+            });
+            if (response.status === 200) {
+                if (location.pathname.startsWith("/bc-edit-book/")) navigate(`/bc-book-details/${id}`);
+                else if (location.pathname.startsWith("/wl-edit-book/")) navigate(`/wl-book-details/${id}`);
+            }
+        } catch (error) {
+            console.error("Błąd podczas edytowania książki: ", error);
+            throw error;
+        }
+    };
+
+    const handleCheckISBN = async () => {
+        if (!isbn) {
+            alert("Pole z kodem ISBN musi być wypełnione!");
+            return;
+        }
+
+        const bookData = await fetchBookByISBN(isbn);
+        if (bookData) {
+            setTitle(bookData.title);
+            setAuthor(bookData.author);
+            setCover(bookData.cover);
+            setPublisher(bookData.publisher);
+            setDate(bookData.date);
+            setPages(bookData.pages);
+            setDesc(bookData.desc);
+        }
+    };
+
+    const fetchBookByISBN = async (isbn) => {
+        try {
+            const response = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
+            );
+            const data = await response.json();
+
+            if (data.items && data.items.length > 0) {
+                const book = data.items[0].volumeInfo;
+                return {
+                    title: book.title || "",
+                    author: book.authors ? book.authors.join(", ") : "",
+                    cover: book.imageLinks ? book.imageLinks.thumbnail : "unknown.jpg",
+                    publisher: book.publisher || "",
+                    date: book.publishedDate || "",
+                    pages: book.pageCount || "",
+                    desc: book.description || "",
+                };
+            } else {
+                alert("Nie znaleziono książki o tym kodzie ISBN.");
+                return null;
+            }
+        } catch (error) {
+            console.error("Błąd podczas pobierania danych książki: ", error);
+            alert("Wystąpił błąd podczas pobierania danych książki.");
+            return null;
+        }
     };
 
     const handleJsonFileSelect = (file) => {
@@ -192,7 +351,7 @@ const AddBook = () =>
                     for (const book of booksToAdd) {
                         let response;
                         try {
-                            response = await onSubmit(book);
+                            response = await onSubmitAdd(book);
 
                             if (response.status === 201) {
                                 addedCount++;
@@ -238,153 +397,9 @@ const AddBook = () =>
         }
     };
 
-    const handleCheckISBN = async () => {
-        if (!isbn) {
-            alert("Pole z kodem ISBN musi być wypełnione!");
-            return;
-        }
-
-        const bookData = await fetchBookByISBN(isbn);
-        if (bookData) {
-            setTitle(bookData.title);
-            setAuthor(bookData.author);
-            setCover(bookData.cover);
-            setPublisher(bookData.publisher);
-            setDate(bookData.date);
-            setPages(bookData.pages);
-            setDesc(bookData.desc);
-        }
-    };
-
-    const fetchBookByISBN = async (isbn) => {
-        try {
-            const response = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
-            );
-            const data = await response.json();
-
-            if (data.items && data.items.length > 0) {
-                const book = data.items[0].volumeInfo;
-                return {
-                    title: book.title || "",
-                    author: book.authors ? book.authors.join(", ") : "",
-                    cover: book.imageLinks ? book.imageLinks.thumbnail : "unknown.jpg",
-                    publisher: book.publisher || "",
-                    date: book.publishedDate || "",
-                    pages: book.pageCount || "",
-                    desc: book.description || "",
-                };
-            } else {
-                alert("Nie znaleziono książki o tym kodzie ISBN.");
-                return null;
-            }
-        } catch (error) {
-            console.error("Błąd podczas pobierania danych książki: ", error);
-            alert("Wystąpił błąd podczas pobierania danych książki.");
-            return null;
-        }
-    };
-
-    const onSubmit = async (book) => {
-        try {
-            let response;
-            const type = location.pathname === "/bc-add-book" ? "bc" : "wl";
-
-            if (book) {
-                response = await authAxios.post(`${apiUrl}/api/add-book/${type}`, book); 
-            }
-            else {
-                response = await authAxios.post(`${apiUrl}/api/add-book/${type}`, {
-                    title,
-                    author,
-                    cover,
-                    genres,
-                    publisher,
-                    date,
-                    pages,
-                    isbn,
-                    desc,
-                });
-            }
-            
-            if (response.status == 201)
-            {
-                if(addBookMethod !== "json")
-                {
-                    if(location.pathname === "/bc-add-book")
-                    {
-                        navigate('/book-collection');
-                    }
-                    else if(location.pathname === "/wl-add-book")
-                    {
-                        navigate('/wish-list');
-                    }
-                }
-            }
-            
-            return response;
-
-        } catch (error) {
-            console.error("Błąd podczas dodawania książki: ", error);
-            throw error;
-        }
-    };
-
-    const autoFillBookInfo = async () => {
-        if (!title || !author) {
-            return;
-        }
-        
-        try {
-            setLoading(true);
-
-            const response = await authAxios.post(`${apiUrl}/api/generate-book-info`, {
-                title,
-                author
-            });
-
-            console.log("Odpowiedź z serwera: ", response.data);
-        
-            setPublisher(response.data.publisher || '');
-            setDate(response.data.date || '');
-            setPages(response.data.pages || '');
-            setISBN(response.data.isbn || '');
-            setDesc(response.data.desc || '');
-            setGenres(response.data.genres || '');
-            setCheckedList(response.data.genres ? response.data.genres.split(',').map(genre => genre.trim()) : []);
-        } catch (err) {
-            console.error('Błąd podczas generowania danych o książce: ', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        await onSubmit();
-    };
-
-    const handleGenreChange = (event) => 
-    {
-        const { checked, value } = event.target;
-    
-        setCheckedList((prev) => 
-        {
-            if (checked) 
-            {
-                return [...prev, value];
-            } 
-            else 
-            {
-                return prev.filter((genre) => genre !== value);
-            }
-        });
-    };
-
     return (
         <div>
-            {addBookMethod === "" && (
+            {mode === "add" && addBookMethod === "" && (
                 <div className='add-book-method-container'>
                     <h3>Wybierz metodę dodawania książki</h3>
                     <div className='add-book-method-buttons'>
@@ -413,10 +428,10 @@ const AddBook = () =>
                     </div>
                 </div>
             )}
-            {addBookMethod !== "" && (
+            {(mode === "edit" || (mode === "add" && addBookMethod !== "")) && (
                 <div className="add-book-container">
                     <div className="add-book-form">
-                        <h2>Dodaj książkę</h2>
+                        <h2>{mode === "edit" ? "Edytuj książkę" : "Dodaj książkę"}</h2>
                         <form onSubmit={handleSubmit}>
                             {addBookMethod === "json" && (
                                 <>
@@ -459,7 +474,7 @@ const AddBook = () =>
                                     <button type="button" onClick={handleCheckISBN}>Sprawdź</button>
                                 </div>
                             )}
-                            {(addBookMethod === "manual" || addBookMethod === "isbn") && (
+                            {(mode === "edit" || (mode === "add" && (addBookMethod === "manual" || addBookMethod === "isbn"))) && (
                                 <>
                                     <div className="add-book-row">
                                         <div>
@@ -612,7 +627,7 @@ const AddBook = () =>
                                             />
                                         </label>
                                     </div>
-                                    {addBookMethod === "manual" && (
+                                    {(mode === "edit" || (mode === "add" && addBookMethod === "manual")) && (
                                         <div className="add-book-row">
                                             <label>
                                                 ISBN:
@@ -643,8 +658,22 @@ const AddBook = () =>
                                         />
                                     </div>
                                     <div className="add-book-buttons">
-                                        <button type="submit">Dodaj książkę</button>
-                                        <button type="button" onClick={() => {setAddBookMethod("")}}>
+                                        <button type="submit">{mode === "edit" ? "Edytuj książkę" : "Dodaj książkę"}</button>
+                                        <button type="button" onClick={() => {
+                                            if (mode === "edit") {
+                                                if(location.pathname.startsWith("/bc-edit-book/"))
+                                                {
+                                                    navigate(`/bc-book-details/${id}`);
+                                                }
+                                                else if(location.pathname.startsWith("/wl-edit-book/"))
+                                                {
+                                                    navigate(`/wl-book-details/${id}`);
+                                                }
+                                            }
+                                            else {
+                                                setAddBookMethod("")
+                                            }
+                                        }}>
                                             Anuluj
                                         </button>
                                     </div>
@@ -658,4 +687,4 @@ const AddBook = () =>
     );
 };
 
-export default AddBook;
+export default BookForm;

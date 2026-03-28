@@ -9,10 +9,8 @@ from flask_discord import DiscordOAuth2Session
 from authlib.integrations.flask_client import OAuth
 
 origins = [
-    "http://ip8.vp2.titanaxe.com",
-    "http://ip8.vp2.titanaxe.com:5173",
-    "http://51.77.48.135",
-    "http://51.77.48.135:5173",
+    "http://localhost",
+    "http://localhost:5173",
     "https://github.com",
     "https://discord.com"
 ]

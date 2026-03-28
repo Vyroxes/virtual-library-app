@@ -1,5 +1,7 @@
 from datetime import datetime
+import json
 import os
+import re
 from sqlite3 import IntegrityError
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -57,6 +59,116 @@ def search_covers():
         return jsonify(covers)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@books_bp.route('/api/generate-book-info', methods=['POST'])
+def generate_book_info():
+    data = request.get_json()
+    title = data.get('title')
+    author = data.get('author')
+    
+    if not title or not author:
+        return jsonify({"error": "Brak tytułu lub autora."}), 400
+    
+    try:
+        ai_generated_info = generate_with_ai(title, author)
+        return jsonify(ai_generated_info)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def generate_with_ai(title, author):
+    prompt = f"""
+    Przeszukaj Internet i wyszukaj szczegółowe informacje o książce (najlepiej polskie wydanie, jeśli istnieje) na podstawie tytułu i autora:
+    
+    Tytuł: {title}
+    Autor: {author}
+    
+    Zwróć informacje w formacie JSON zawierającym:
+    - wydawnictwo (publisher)
+    - data wydania (date) w formacie yyyy-MM-dd
+    - liczba stron (pages) jako string
+    - ISBN (isbn) - 13 cyfr jako string
+    - gatunki (genres) oddzielone przecinkami, do wyboru tylko te, nie dodawaj innych: fantasy, science-fiction, horror, romans, thriller, kryminał, historia, poradnik, dla dzieci, dla młodzieży, komiks, manga, na podstawie gry, lektura, beletrystyka, poezja, erotyczne, literatura piękna, przygoda, sensacja, biografia, reportaż, popularnonaukowe.
+    - krótki opis (desc) do 500 znaków
+
+    Odpowiedz tylko w formacie JSON bez dodatkowych komentarzy.
+    """
+    
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+                "HTTP-Referer": "http://ip8.vp2.titanaxe.com",
+                "X-Title": "BD_Projekt",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps({
+                "model": "deepseek/deepseek-chat-v3-0324:free",  
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Jesteś asystentem AI, który tworzy metadane książek w formacie JSON."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            })
+        )
+        
+        if response.status_code != 200:
+            print(f"Błąd API: {response.status_code} - {response.text}")
+            
+        result = response.json()
+        content = result["choices"][0]["message"]["content"]
+        
+        try:
+            json_match = re.search(r'```(?:json)?\n(.*?)\n```', content, re.DOTALL)
+            if json_match:
+                content = json_match.group(1).strip()
+                
+            book_data = json.loads(content)
+            
+            book_data['title'] = title
+            book_data['author'] = author
+
+            field_mappings = {
+                'page': 'pages',
+                'genre': 'genres'
+            }
+            
+            for alt_field, correct_field in field_mappings.items():
+                if alt_field in book_data and (correct_field not in book_data or not book_data[correct_field]):
+                    book_data[correct_field] = book_data[alt_field]
+                    del book_data[alt_field]
+
+            allowed_genres = [
+                'fantasy', 'science-fiction', 'horror', 'romans', 'thriller', 
+                'kryminał', 'historia', 'poradnik', 'dla dzieci', 'dla młodzieży', 
+                'komiks', 'manga', 'na podstawie gry', 'lektura', 'beletrystyka', 
+                'poezja', 'erotyczne', 'literatura piękna', 'przygoda', 'sensacja', 
+                'biografia', 'reportaż', 'popularnonaukowe'
+            ]
+
+            if 'genres' in book_data and book_data['genres']:
+                genre_list = [g.strip().lower() for g in book_data['genres'].split(',')]
+                
+                filtered_genres = [g for g in genre_list if g in allowed_genres]
+                
+                if filtered_genres:
+                    book_data['genres'] = ', '.join(filtered_genres)
+                else:
+                    book_data['genres'] = ''
+                
+            return book_data
+            
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Błąd parsowania JSON: {e}")
+            print(f"Otrzymana odpowiedź: {content}")
+            
+    except Exception as e:
+        print(f"Błąd podczas komunikacji z OpenRouter: {e}")
 
 @books_bp.route('/api/add-book/<string:type>', methods=['POST'])
 @limiter.exempt

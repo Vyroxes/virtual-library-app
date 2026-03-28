@@ -80,17 +80,6 @@
     animation: slideInRight 0.8s ease forwards;
 }
 
-.book-details-info h1::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 44vw;
-    height: 3px;
-    background: linear-gradient(to right, transparent, #4caf50, transparent);
-    animation: expandLine 1.5s ease forwards;
-}
-
 .book-details-info h2 {
     font-size: 1.6rem;
     color: #4caf50;
@@ -201,11 +190,6 @@
 @keyframes slideInRight {
     from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes expandLine {
-    from { width: 0; }
-    to { width: 44vw; }
 }
 
 @media (max-width: 1244px) {

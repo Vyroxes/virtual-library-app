@@ -11,6 +11,7 @@ const Books = lazy(() => import('./components/Books'));
 const BookDetails = lazy(() => import('./components/BookDetails'));
 const AddBook = lazy(() => import('./components/AddBook'));
 const EditBook = lazy(() => import('./components/EditBook'));
+const BookForm = lazy(() => import('./components/BookForm'));
 const ReviewBook = lazy(() => import('./components/ReviewBook'));
 const Premium = lazy(() => import('./components/Premium'));
 const Contact = lazy(() => import('./components/Contact'));
@@ -32,10 +33,10 @@ const App = () => {
           <Route path="/wish-list" element={<ProtectedRoute><Books /></ProtectedRoute>} />
           <Route path="/bc-book-details/:id" element={<ProtectedRoute><BookDetails /></ProtectedRoute>} />
           <Route path="/wl-book-details/:id" element={<ProtectedRoute><BookDetails /></ProtectedRoute>} />
-          <Route path="/bc-add-book" element={<ProtectedRoute><AddBook /></ProtectedRoute>} />
-          <Route path="/wl-add-book" element={<ProtectedRoute><AddBook /></ProtectedRoute>} />
-          <Route path="/bc-edit-book/:id" element={<ProtectedRoute><EditBook /></ProtectedRoute>} />
-          <Route path="/wl-edit-book/:id" element={<ProtectedRoute><EditBook /></ProtectedRoute>} />
+          <Route path="/bc-add-book" element={<ProtectedRoute><BookForm mode="add" /></ProtectedRoute>} />
+          <Route path="/wl-add-book" element={<ProtectedRoute><BookForm mode="add" /></ProtectedRoute>} />
+          <Route path="/bc-edit-book/:id" element={<ProtectedRoute><BookForm mode="edit" /></ProtectedRoute>} />
+          <Route path="/wl-edit-book/:id" element={<ProtectedRoute><BookForm mode="edit" /></ProtectedRoute>} />
           <Route path="/bc-review-book/:id" element={<ProtectedRoute><ReviewBook /></ProtectedRoute>} />
           <Route path="/wl-review-book/:id" element={<ProtectedRoute><ReviewBook /></ProtectedRoute>} />
           <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />

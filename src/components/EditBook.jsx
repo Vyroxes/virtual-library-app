@@ -268,7 +268,7 @@ const EditBook = () =>
                             <button type="button" onClick={() => setShowCover(!showCover)} style={{marginRight: '8px'}}>
                                 {showCover ? "Ukryj podgląd okładki" : "Pokaż podgląd okładki"}
                             </button>
-                            <button type="button" onClick={() => { setShowCoverSearch(true); handleCoverSearch(); }}>
+                            <button type="button" disabled={!title.trim() || !author.trim()} onClick={() => { setShowCoverSearch(true); handleCoverSearch(); }}>
                                 Wyszukaj okładkę
                             </button>
                         </div>

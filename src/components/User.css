@@ -79,7 +79,6 @@
     font-size: 1.3rem;
     color: rgba(255, 255, 255, 0.8);
     margin: 15px 0 5px;
-    display: block;
     animation: fadeIn 1s ease forwards;
     transition: all 0.3s ease;
 }
@@ -243,7 +242,7 @@
 
 @keyframes expandLine2 {
     from { width: 0; }
-    to { width: 10dvw; }
+    to { min-width: 200px; width: 10dvw; }
 }
 
 @keyframes avatarEnter {
@@ -258,16 +257,42 @@
     100% { transform: scale(1); opacity: 0.8; }
 }
 
-@media (max-aspect-ratio: 9/16) {
+@media (max-width: 1262px) {
     .user-stats {
+        text-align: center;
         min-width: unset;
-        width: 90%;
+        width: unset;
+        display: flex;
+        flex-direction: column;
     }
+
     .user-stats li {
+        padding-left: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         font-size: medium;
+    }
+
+    .user-actions {
+        flex-direction: column;
+    }
+
+    .user-actions button {
+        min-width: unset;
+    }
+
+    .user-stats li::before {
+        content: unset;
+        position: unset;
+        left: unset;
+        color: unset;
+        font-size: unset;
+        line-height: unset;
+    }
+
+    .user-stats ul {
+        padding-left: 0;
     }
 }

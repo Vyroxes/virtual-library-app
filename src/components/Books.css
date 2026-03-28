@@ -293,6 +293,11 @@
     .book-collection-bar-container4,
     .book-collection-bar-container5 {
         justify-content: center;
+        width: unset;
+    }
+
+    .book-collection-bar-container3 {
+        width: 90%;
     }
 
     .book-collection-bar-container1,
@@ -300,5 +305,21 @@
     .book-collection-bar-container3,
     .book-collection-bar-container4 {
         margin-bottom: 10px;
+    }
+
+    .book-collection-bar-container5 {
+        margin-right: 0px;
+    }
+
+    .book-collection-filter {
+        align-items: center;
+        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 10px;
+        padding: 20px 20px 0 10px;
+    }
+
+    .book-collection-filter-controls {
+        width: 80%;
     }
 }

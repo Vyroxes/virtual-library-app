@@ -1,97 +1,112 @@
 🇬🇧 [English version](README.md)
 
-## 📚 Virtual Library App
+## 📚 Aplikacja Wirtualnej Biblioteki
 
-A full-featured web application for managing a personal virtual library, built with a modern backend architecture and strong focus on security, scalability, and user experience.
-
----
-
-## 🚀 Overview
-
-The application allows users to create and manage their own book collections and wishlists. It supports both traditional authentication and OAuth login via GitHub and Discord.
-
-Users can:
-
-* manage books (add, edit, delete)
-* import data via ISBN or JSON
-* rate and review books
-* browse other user profiles
-* purchase premium plans
-
-Administrators have access to advanced user management features.
+W pełni funkcjonalna aplikacja webowa do zarządzania osobistą wirtualną biblioteką, zbudowana w nowoczesnej architekturze backendowej, z dużym naciskiem na bezpieczeństwo, skalowalność i doświadczenie użytkownika.
 
 ---
 
-## ✨ Key Features
+## 🚀 Przegląd
 
-### 👤 Authentication & Security
+Aplikacja umożliwia użytkownikom tworzenie i zarządzanie własnymi kolekcjami książek oraz listami życzeń. Obsługuje zarówno tradycyjne logowanie, jak i OAuth przez GitHub oraz Discord.
 
-* JWT-based authentication (access + refresh tokens)
-* Token blacklist mechanism (logout invalidation)
-* OAuth login (GitHub, Discord) with account linking
-* Secure password hashing (bcrypt)
-* Environment-based configuration (.env)
+Użytkownicy mogą:
 
-### 📚 Book Management
+* zarządzać książkami (dodawanie, edycja, usuwanie)
+* importować dane przez ISBN lub JSON
+* oceniać i recenzować książki
+* przeglądać profile innych użytkowników
+* kupować plany premium
 
-* Add books manually, via ISBN, or JSON import
-* Edit and delete books
-* Move books between collection and wishlist
-* Prevent duplicate entries (e.g. ISBN validation)
-
-### 🖼️ Image Search
-* Integration with **Google Custom Search**
-* Allows searching for book cover images when adding a book
-
-### 🤖 AI Assistance
-* Integration with **OpenRouter API**
-* Uses **DeepSeek Chat v3 0324 (free)**
-* Automatically fills book metadata (genres, publisher, publication date, description, etc.)
-
-### ⭐ Reviews & Ratings
-
-* Add ratings and reviews
-* Store user opinions for each book
-
-### 🔍 Search & Filtering
-
-* Search by title or author
-* Sort by multiple fields (title, author, date, rating, etc.)
-* Filter by genre, year, and page count
-* Real-time updates using AJAX
-
-### 👥 Social Features
-
-* View other users’ profiles
-* User statistics (e.g. number of books)
-
-### 💳 Payments
-
-* Integration with Stripe
-* PREMIUM and PREMIUM+ subscription plans
-* Upgrade/downgrade logic
-
-### 📊 Logging
-* Backend request logging to logs.txt
-* Logs every incoming request (method, endpoint, timestamps)
-* Useful for debugging and monitoring
-
-### 🛠️ Admin Panel
-
-* View and manage users
-* Modify user roles and subscription plans
-* Access system-level information
-
-### 📩 Contact System
-
-* Built-in contact form for user support
+Administratorzy mają dostęp do zaawansowanych funkcji zarządzania użytkownikami.
 
 ---
 
-## 🧱 Backend Architecture
+## ✨ Kluczowe funkcje
 
-The backend follows a structured **MVC-like architecture (REST API only)**:
+### 👤 Uwierzytelnianie i bezpieczeństwo
 
+* uwierzytelnianie oparte na JWT (access + refresh tokens)
+* mechanizm blacklisty tokenów (unieważnianie po wylogowaniu)
+* logowanie OAuth (GitHub, Discord) z łączeniem kont
+* bezpieczne hashowanie haseł (bcrypt)
+* konfiguracja oparta na zmiennych środowiskowych (.env)
+
+### 📚 Zarządzanie książkami
+
+* dodawanie książek ręcznie, przez ISBN lub JSON
+* edycja i usuwanie książek
+* przenoszenie książek między kolekcją a listą życzeń
+* zapobieganie duplikatom (np. walidacja ISBN)
+
+### 🖼️ Wyszukiwanie obrazów
+* integracja z **Google Custom Search**
+* możliwość wyszukiwania okładek książek przy dodawaniu
+
+### 🤖 Wsparcie AI
+* integracja z **OpenRouter API**
+* wykorzystanie **DeepSeek Chat v3 0324 (free)**
+* automatyczne uzupełnianie metadanych książki (gatunek, wydawnictwo, data publikacji, opis itd.)
+
+### ⭐ Recenzje i oceny
+
+* dodawanie ocen i recenzji
+* przechowywanie opinii użytkowników dla każdej książki
+
+### 🔍 Wyszukiwanie i filtrowanie
+
+* wyszukiwanie po tytule lub autorze
+* sortowanie po wielu polach (tytuł, autor, data, ocena itd.)
+* filtrowanie po gatunku, roku i liczbie stron
+* aktualizacje w czasie rzeczywistym (AJAX)
+
+### 👥 Funkcje społecznościowe
+
+* przeglądanie profili innych użytkowników
+* statystyki użytkowników (np. liczba książek)
+
+### 💳 Płatności
+
+* integracja z Stripe
+* plany subskrypcyjne PREMIUM i PREMIUM+
+* logika upgrade/downgrade
+
+### 📊 Logowanie
+* logowanie zapytań backendu do pliku logs.txt
+* rejestrowanie każdego żądania (metoda, endpoint, timestamp)
+* przydatne do debugowania i monitorowania
+
+### 🛠️ Panel administracyjny
+
+* przegląd i zarządzanie użytkownikami
+* zmiana ról użytkowników i planów subskrypcji
+* dostęp do informacji systemowych
+
+### 📩 System kontaktowy
+
+* wbudowany formularz kontaktowy dla użytkowników
+
+---
+
+## 🧱 Architektura systemu
+
+Aplikacja opiera się na architekturze klient-serwer:
+
+* Frontend (React) komunikuje się z backendem przez REST API  
+* Backend (Flask) obsługuje logikę biznesową, autoryzację i przetwarzanie danych  
+* Baza danych (SQLite) przechowuje użytkowników, książki, recenzje i subskrypcje  
+
+Usługi zewnętrzne:
+* OpenRouter (funkcje AI)
+* Google Custom Search (obrazy)
+* Stripe (płatności)
+* Dostawcy OAuth (GitHub, Discord)
+
+---
+
+### Architektura backendu
+
+Backend opiera się na uporządkowanej architekturze typu **MVC (REST API)**:
 ```
 backend/
 ├── controllers/
@@ -102,119 +117,120 @@ backend/
 ├── app.py
 ```
 
-* Controllers – business logic
-* Models – database structure (ORM)
-* Routes – API endpoints
-* Tests – unit & integration tests
+* Kontrolery – logika biznesowa  
+* Modele – struktura bazy danych (ORM)  
+* Trasy – endpointy API  
+* Testy – testy jednostkowe i integracyjne  
 
 ---
 
-## 🛠️ Technologies
+## 🛠️ Technologie
 
 ### Backend
 
-* Python 3.12
-* Flask (REST API)
-* SQLAlchemy (ORM)
-* SQLite (database)
+* Python 3.12  
+* Flask (REST API)  
+* SQLAlchemy (ORM)  
+* SQLite (baza danych)  
 
-### Authentication & Security
+### Uwierzytelnianie i bezpieczeństwo
 
-* Flask-JWT-Extended
-* Flask-Bcrypt
-* Flask-Talisman
-* Flask-Limiter
-* Flask-CORS
+* Flask-JWT-Extended  
+* Flask-Bcrypt  
+* Flask-Talisman  
+* Flask-Limiter  
+* Flask-CORS  
 
 ### OAuth
 
-* Authlib (GitHub)
-* Flask-Discord
+* Authlib (GitHub)  
+* Flask-Discord  
 
-### Payments
+### Płatności
 
-* Stripe API
+* Stripe API  
 
-### Utilities
+### Narzędzia
 
-* dotenv
-* datetime / pytz
-* regex (re)
-* urllib
-* os
-* json
+* dotenv  
+* datetime / pytz  
+* regex (re)  
+* urllib  
+* os  
+* json  
 
-### Testing
+### Testowanie
 
-* Pytest (integration tests)
-* Unittest (unit tests)
-* Postman (API testing)
+* Pytest (testy integracyjne)  
+* Unittest (testy jednostkowe)  
+* Postman (testowanie API)  
 
 ---
 
-## 🔐 Security Highlights
+## 🔐 Najważniejsze aspekty bezpieczeństwa
 
-* JWT validation on every request
-* Token expiration & refresh mechanism
-* Token blacklist for logout handling
-* Rate limiting (anti-DDoS / brute force)
-* Secure HTTP headers (Talisman)
-* CORS protection
-* Request size limiting (2 MB)
-* Disabled unsafe headers
-* Sensitive data stored in environment variables
+* walidacja JWT przy każdym żądaniu  
+* mechanizm wygaśnięcia i odświeżania tokenów  
+* blacklista tokenów (wylogowanie)  
+* rate limiting (ochrona przed atakami DDoS / brute force)  
+* bezpieczne nagłówki HTTP (Talisman)  
+* ochrona CORS  
+* limit rozmiaru żądań (2 MB)  
+* wyłączone niebezpieczne nagłówki  
+* wrażliwe dane przechowywane w zmiennych środowiskowych  
 
 ---
 
 ## 📡 API
 
-* ~26 REST endpoints
-* Methods: `GET`, `POST`, `PATCH`, `DELETE`
-* Token-based authentication via headers & cookies
+* ~26 endpointów REST  
+* metody: `GET`, `POST`, `PATCH`, `DELETE`  
+* autoryzacja oparta na tokenach (headers i cookies)  
 
 ---
 
-## 🧪 Testing
+## 🧪 Testowanie
 
-* Unit tests for core logic
-* Integration tests for endpoints
-* API testing with Postman
+* testy jednostkowe dla logiki  
+* testy integracyjne endpointów  
+* testowanie API za pomocą Postmana  
 
 ---
 
-## 🧰 Requirements and Installation
+## 🧰 Wymagania i instalacja
 
-### Required libraries
+### Wymagane biblioteki
 
-- `Authlib`
-- `bcrypt`
-- `Flask`
-- `Flask-Bcrypt`
-- `Flask-Cors`
-- `Flask-Discord`
-- `Flask-JWT-Extended`
-- `Flask-Limiter`
-- `Flask-SQLAlchemy`
-- `Flask-Talisman`
-- `python-dotenv`
-- `pytz`
-- `requests`
-- `SQLAlchemy`
-- `stripe`
-- `pytest`
+* `Authlib` – biblioteka do obsługi OAuth i autoryzacji  
+* `bcrypt` – narzędzie do bezpiecznego hashowania haseł  
+* `Flask` – lekki framework do budowy API w Pythonie  
+* `Flask-Bcrypt` – integracja Flask z bcrypt  
+* `Flask-Cors` – obsługa CORS (komunikacja frontend–backend)  
+* `Flask-Discord` – integracja logowania przez Discord  
+* `Flask-JWT-Extended` – obsługa JWT  
+* `Flask-Limiter` – ograniczanie liczby żądań  
+* `Flask-SQLAlchemy` – integracja ORM  
+* `Flask-Talisman` – nagłówki bezpieczeństwa i HTTPS  
+* `python-dotenv` – obsługa pliku `.env`  
+* `pytz` – obsługa stref czasowych  
+* `requests` – zapytania HTTP  
+* `SQLAlchemy` – ORM do pracy z bazą danych  
+* `stripe` – integracja płatności  
+* `pytest` – framework do testów  
 
-### Installing dependencies
-  You can install them individually with specific versions:
+### Instalacja zależności
+
+Można je zainstalować pojedynczo z określoną wersją:
   ```bash
   pip install Authlib==1.6.9 bcrypt==5.0.0 Flask==3.1.3 Flask-Bcrypt==1.0.1 Flask-Cors==6.0.2 Flask-Discord==0.1.69 Flask-JWT-Extended==4.7.1 Flask-Limiter==4.1.1 Flask-SQLAlchemy==3.1.1 Flask-Talisman==1.1.0 python-dotenv==1.2.2 pytz==2026.1.post1 requests==2.33.0 SQLAlchemy==2.0.48 stripe==15.0.0 pytest==8.4.2
   ```
 
-  Or using `requirements.txt`:
+Lub za pomocą pliku `requirements.txt`:
   ```bash
   pip install -r requirements.txt
   ```
 
-### Installation
+### Instalacja
 
 Backend:
 ```bash
@@ -230,7 +246,7 @@ cd src
 npm install
 ```
 
-Create `.env` file:
+Utwórz plik `.env`:
 ```
 JWT_SECRET_KEY=
 JWT_REFRESH_TOKEN_SECRET_KEY=
@@ -254,7 +270,7 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 ```
 
-Run the app:
+Uruchamianie aplikacji:
 
 Backend:
 ```bash
@@ -269,13 +285,15 @@ npm run dev
 
 ---
 
-## 🧠 Future Improvements
+## 🧠 Możliwe kierunki rozwoju
 
-* Switch to PostgreSQL (production-ready DB)
-* Docker support
-* CI/CD pipeline
-* Frontend deployment (React)
-* Email verification & 2FA
+* Migracja do PostgreSQL dla środowiska produkcyjnego
+* Dodanie Docker (konteneryzacja)
+* Pipeline CI/CD (np. GitHub Actions)
+* Wdrożenie frontendu (React) na platformie produkcyjnej (np. Vercel, Netlify) i połączenie z backendem
+* Dodanie weryfikacji email i 2FA
+* Poprawa cache i wydajności (np. Redis)
+* Rozszerzenie OAuth o dodatkowych dostawców (np. Google, Facebook, Microsoft)
 
 ---
 

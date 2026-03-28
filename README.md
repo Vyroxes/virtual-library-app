@@ -11,7 +11,6 @@ A full-featured web application for managing a personal virtual library, built w
 The application allows users to create and manage their own book collections and wishlists. It supports both traditional authentication and OAuth login via GitHub and Discord.
 
 Users can:
-
 * manage books (add, edit, delete)
 * import data via ISBN or JSON
 * rate and review books

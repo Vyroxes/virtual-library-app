@@ -11,7 +11,6 @@ W pełni funkcjonalna aplikacja webowa do zarządzania osobistą wirtualną bibl
 Aplikacja umożliwia użytkownikom tworzenie i zarządzanie własnymi kolekcjami książek oraz listami życzeń. Obsługuje zarówno tradycyjne logowanie, jak i OAuth przez GitHub oraz Discord.
 
 Użytkownicy mogą:
-
 * zarządzać książkami (dodawanie, edycja, usuwanie)
 * importować dane przez ISBN lub JSON
 * oceniać i recenzować książki

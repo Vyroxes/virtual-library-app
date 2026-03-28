@@ -14,7 +14,12 @@ dist-ssr
 *.local
 
 # Editor directories and files
+*.db
+*.sqlite
+instance/
+*.rar
 .vscode/*
+__pycache__/
 !.vscode/extensions.json
 .env
 .idea

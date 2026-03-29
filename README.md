@@ -57,7 +57,6 @@ Administrators have access to advanced user management features.
 * Search by title or author
 * Sort by multiple fields (title, author, date, rating, etc.)
 * Filter by genre, year, and page count
-* Real-time updates using AJAX
 
 ### 👥 Social Features
 

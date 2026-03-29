@@ -57,7 +57,6 @@ Administratorzy mają dostęp do zaawansowanych funkcji zarządzania użytkownik
 * wyszukiwanie po tytule lub autorze
 * sortowanie po wielu polach (tytuł, autor, data, ocena itd.)
 * filtrowanie po gatunku, roku i liczbie stron
-* aktualizacje w czasie rzeczywistym (AJAX)
 
 ### 👥 Funkcje społecznościowe
 

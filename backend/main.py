@@ -18,7 +18,9 @@ import stripe
 import re
 import os
 
-load_dotenv(dotenv_path='.env')
+basedir = os.path.abspath(os.path.dirname(__file__))
+env_path = os.path.join(basedir, '.env')
+load_dotenv(env_path)
 
 app = Flask(__name__)
 
@@ -84,7 +86,7 @@ def block_file_uploads():
 
 def get_last_log_number():
     try:
-        with open("logs.txt", "r", encoding="utf-8") as f:
+        with open("app.log", "r", encoding="utf-8") as f:
             content = f.read()
             matches = re.findall(r'^(\d+)\.', content, re.MULTILINE)
             if matches:
@@ -126,7 +128,7 @@ def log_request():
     
     log_entry += "\n"
     
-    with open("logs.txt", "a", encoding="utf-8") as f:
+    with open("app.log", "a", encoding="utf-8") as f:
         f.write(log_entry)
     
     request_counter += 1

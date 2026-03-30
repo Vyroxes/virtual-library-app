@@ -1,99 +1,97 @@
 import { useState, useEffect } from 'react';
-import { MdHighlightOff } from "react-icons/md";
-import { AiOutlineProduct } from "react-icons/ai";
+import { MdHighlightOff, MdOutlineDarkMode } from "react-icons/md";
+import { AiOutlineProduct, AiFillStar, AiFillMail } from "react-icons/ai";
 import { RxAvatar } from "react-icons/rx";
 import { HiCollection } from "react-icons/hi";
-import { AiFillStar } from "react-icons/ai";
-import { MdOutlineDarkMode } from "react-icons/md";
 import { IoIosStats } from "react-icons/io";
-import { AiFillMail } from "react-icons/ai";
-import { authAxios } from '../utils/Auth';
+import { authAxios, getUsername } from '../utils/Auth';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getCookie } from '../utils/Auth';
 
 import './Premium.css';
 
 const Premium = () => {
-    const [searchParams] = useSearchParams(); 
+    const [searchParams] = useSearchParams();
+
     const [loading, setLoading] = useState(false);
     const [loading2, setLoading2] = useState(false);
+
     const [status, setStatus] = useState(false);
     const [subscription, setSubscription] = useState(null);
+
     const [paymentMsg, setPaymentMsg] = useState(null);
     const [paymentError, setPaymentError] = useState(null);
 
     const navigate = useNavigate();
-
     const apiUrl = import.meta.env.VITE_API_URL;
+
+    const username = getUsername();
 
     useEffect(() => {
         const loadData = async () => {
             await checkSubscription();
-            
+
             const param = searchParams.get('status');
+
             if (param) {
                 if (param === 'ok') {
                     setPaymentMsg('Płatność zakończona sukcesem.');
-                } 
-                else if (param === 'cancelled') {
-                    setPaymentError('Płatność anulowana.');
-                    await handleCancel(true);
-                    await checkSubscription(); 
                 }
 
-                navigate(window.location.pathname, { replace: true }); 
+                if (param === 'cancelled') {
+                    setPaymentError('Płatność anulowana.');
+                    await handleCancel(true);
+                }
+
+                navigate(window.location.pathname, { replace: true });
             }
         };
-        
+
         loadData();
-    }, [searchParams, navigate]);
+    }, [searchParams]);
 
     const checkSubscription = async () => {
         try {
-            const response = await authAxios.get(`${apiUrl}/api/payments/status/${getCookie('username')}`);
-            
+            const response = await authAxios.get(`${apiUrl}/api/payments/status/${username}`);
+
             if (response.status === 200) {
                 if (response.data.has_premium) {
                     setSubscription(response.data.subscription);
                     setStatus(true);
-                } 
-                else if (response.data.subscription && response.data.subscription.status === 'PENDING') {
+                } else if (response.data.subscription?.status === 'PENDING') {
                     setSubscription(response.data.subscription);
                     setStatus(false);
                     setPaymentError('Trwa przetwarzanie płatności.');
-                } 
-                else {
+                } else {
                     setSubscription(null);
                     setStatus(false);
                 }
             }
         } catch (error) {
-            console.error("Wystąpił błąd podczas sprawdzania subskrypcji: ", error);
+            console.error("Błąd podczas sprawdzania subskrypcji:", error);
         }
     };
 
     const handlePayment = async (plan) => {
         try {
-            if (plan === 'PREMIUM') {
-                setLoading(true);
-            } else {
-                setLoading2(true);
-            }
             setPaymentError(null);
+
+            if (plan === 'PREMIUM') setLoading(true);
+            else setLoading2(true);
 
             const response = await authAxios.post(`${apiUrl}/api/payments/create`, {
                 plan,
             }, {
                 withCredentials: true,
             });
-            
+
             if (response.status === 200 && response.data.payment_url) {
                 window.location.href = response.data.payment_url;
             } else {
-                setPaymentError(response.data.error || 'Wystąpił błąd podczas płatności.');
+                setPaymentError(response.data?.error || 'Błąd płatności.');
             }
         } catch (error) {
-            console.error("Wystąpił błąd podczas płatności: ", error);
+            console.error("Błąd płatności:", error);
+            setPaymentError("Błąd podczas płatności.");
         } finally {
             setLoading(false);
             setLoading2(false);
@@ -103,47 +101,34 @@ const Premium = () => {
     const handleCancel = async (fromRedirect = false) => {
         try {
             if (!fromRedirect) {
-                const confirmCancel = window.confirm("Czy na pewno chcesz usunąć subskrypcję?");
-                if (!confirmCancel) {
-                    return;
-                }
+                const confirmCancel = window.confirm("Czy na pewno chcesz anulować subskrypcję?");
+                if (!confirmCancel) return;
             }
-            
-            const statusResponse = await authAxios.get(`${apiUrl}/api/payments/status/${getCookie('username')}`);
+
+            const statusResponse = await authAxios.get(`${apiUrl}/api/payments/status/${username}`);
             const currentSub = statusResponse.data.subscription;
-            
-            if (fromRedirect) {
-                const response = await authAxios.post(`${apiUrl}/api/payments/set/${getCookie('username')}`, {
-                    status: 'CANCELLED',
-                    plan: currentSub?.plan
-                }, {
-                    withCredentials: true,
-                });
-                
-                if (response.status === 200) {
-                    setPaymentError('Płatność została anulowana.');
-                } else {
-                    setPaymentError('Wystąpił błąd podczas anulowania płatności.');
-                }
-            } 
-            else {
-                const response = await authAxios.post(`${apiUrl}/api/payments/set/${getCookie('username')}`, {
-                    status: 'CANCELLED',
-                    plan: currentSub?.plan
-                }, {
-                    withCredentials: true,
-                });
-                
-                if (response.status === 200) {
-                    setPaymentMsg('Subskrypcja została anulowana.');
-                    setSubscription(null);
-                    setStatus(false);
-                } else {
-                    setPaymentError('Wystąpił błąd podczas anulowania subskrypcji.');
-                }
+
+            const response = await authAxios.post(`${apiUrl}/api/payments/set/${username}`, {
+                status: 'CANCELLED',
+                plan: currentSub?.plan
+            }, {
+                withCredentials: true,
+            });
+
+            if (response.status === 200) {
+                setPaymentMsg(fromRedirect
+                    ? 'Płatność anulowana.'
+                    : 'Subskrypcja anulowana.'
+                );
+
+                setSubscription(null);
+                setStatus(false);
+            } else {
+                setPaymentError('Błąd podczas anulowania.');
             }
         } catch (error) {
-            console.error("Wystąpił błąd podczas anulowania subskrypcji: ", error);
+            console.error("Błąd anulowania:", error);
+            setPaymentError("Błąd podczas anulowania.");
         }
     };
 

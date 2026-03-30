@@ -3,7 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { FaUser, FaLock } from "react-icons/fa";
 import { MdAlternateEmail } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated, authAxios, setTokens } from '../utils/Auth';
+import { isAuthenticated, authAxios, setAuthData } from '../utils/Auth';
 
 import './Login.css';
 import './Register.css';
@@ -36,7 +36,7 @@ const Register = () => {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const result = await isAuthenticated();
+            const result = await isAuthenticated(false);
             if (result) {
                 navigate("/home");
             }
@@ -62,13 +62,9 @@ const Register = () => {
             });
 
             if (response.status === 201) {
-                setTokens(
+                setAuthData(
                     response.data.username,
-                    response.data.email,
-                    response.data.access_token,
-                    response.data.refresh_token,
-                    response.data.expire_time,
-                    response.data.refresh_expire_time
+                    response.data.access_token
                 );
                 
                 navigate('/home');
@@ -76,7 +72,7 @@ const Register = () => {
         } catch (error) {
             console.error("Błąd podczas rejestrowania: ", error);
 
-            if (error.response && error.response.data && error.response.data.message) {
+            if (error.response?.data?.message) {
                 setLoginError(error.response.data.message);
             } else {
                 setLoginError("Błąd podczas rejestrowania.");

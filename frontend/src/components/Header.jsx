@@ -1,46 +1,34 @@
 import { useEffect, useState } from 'react';
 import { CiLogout } from "react-icons/ci";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getCookie, clearTokens, authAxios, refreshAccessToken } from '../utils/Auth';
+import { authAxios, logout, getUsername } from '../utils/Auth';
 
 import './Header.css';
 
 const Header = () => {
     const [avatarUrl, setAvatarUrl] = useState(null);
+    const [username, setUsername] = useState(getUsername());
 
-    const [username, setUsername] = useState(getCookie("username"));
     const navigate = useNavigate();
     const location = useLocation();
 
     const apiUrl = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            const accessToken = getCookie("access_token");
-            const refreshToken = getCookie("refresh_token");
-            const currentUsername = getCookie("username");
-
-            if (currentUsername !== username) {
-                setUsername(currentUsername);
-            }
-            if (currentUsername == undefined || currentUsername == null || currentUsername == "" || accessToken == undefined || accessToken == null || accessToken == "") {
-                refreshAccessToken();
-            }
-            if ((accessToken == undefined || accessToken == null || accessToken == "") && (refreshToken == undefined || refreshToken == null || refreshToken == "")) {
-                clearTokens();
-                navigate("/login");
-            }
-        }, 1000);
-        return () => clearInterval(interval);
+        const currentUsername = getUsername();
+        if (currentUsername !== username) {
+            setUsername(currentUsername);
+        }
     }, [username]);
 
     useEffect(() => {
         const fetchAvatar = async () => {
             if (username) {
                 try {
-                    const response = await authAxios.get(`${apiUrl}/api/user/${username}`, {
-                        withCredentials: true,
-                    });
+                    const response = await authAxios.get(
+                        `${apiUrl}/api/user/${username}`
+                    );
+
                     if (response.status === 200) {
                         setAvatarUrl(response.data.avatar_url);
                     }
@@ -49,32 +37,17 @@ const Header = () => {
                 }
             }
         };
+
         fetchAvatar();
     }, [username]);
 
     const handleLogout = async () => {
         try {
-            const refreshToken = getCookie('refresh_token');
-
-            if (!refreshToken) {
-                console.error("Brak refresh tokenu");
-                clearTokens();
-                navigate("/login");
-                return;
-            }
-
-            await authAxios.post(`${apiUrl}/api/logout`, {
-                refresh_token: getCookie("refresh_token")
-            }, {
-                withCredentials: true,
-            });
-            
-            clearTokens();
+            await logout();
             navigate('/login');
             console.log("Wylogowano pomyślnie");
         } catch (error) {
             console.error("Błąd podczas wylogowania: ", error);
-            clearTokens();
             navigate('/login');
         }
     };
@@ -88,31 +61,37 @@ const Header = () => {
                             STRONA GŁÓWNA
                         </p>
                     </li>
+
                     <li className={location.pathname.startsWith("/book-collection") ? "active" : ""}>
                         <p onClick={() => navigate("/book-collection")}>
                             KOLEKCJA KSIĄŻEK
                         </p>
                     </li>
+
                     <li className={location.pathname.startsWith("/wish-list") ? "active" : ""}>
                         <p onClick={() => navigate("/wish-list")}>
                             LISTA ŻYCZEŃ
                         </p>
                     </li>
+
                     <li className={location.pathname.startsWith("/premium") ? "active" : ""}>
                         <p onClick={() => navigate("/premium")}>
                             PREMIUM
                         </p>
                     </li>
+
                     <li className={location.pathname.startsWith("/contact") ? "active" : ""}>
                         <p onClick={() => navigate("/contact")}>
                             KONTAKT
                         </p>
                     </li>
+
                     <li className={location.pathname === "/users" ? "active" : ""}>
                         <p onClick={() => navigate("/users")}>
                             UŻYTKOWNICY
                         </p>
                     </li>
+
                     <li className={location.pathname.startsWith(`/users/${username}`) ? "active" : ""}>
                         <p onClick={() => navigate(`/users/${username}`)}>
                             <img
@@ -128,11 +107,11 @@ const Header = () => {
                             {username}
                         </p>
                     </li>
-                    <li className="logout-nav" onClick={(e) => {
-                        e.preventDefault();
-                        handleLogout();
-                    }}>
-                        <p><CiLogout className="logout-icon"/></p>
+
+                    <li className="logout-nav" onClick={handleLogout}>
+                        <p>
+                            <CiLogout className="logout-icon"/>
+                        </p>
                     </li>
                 </ul>
             </nav>

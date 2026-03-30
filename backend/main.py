@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import func
 from dotenv import load_dotenv
 from models import db
-from extensions import limiter, bcrypt, jwt, cors, talisman, discord, oauth
+from extensions import limiter, bcrypt, jwt, cors, talisman, discord, oauth, csrf
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 from routes.contact_routes import contact_bp
@@ -41,6 +41,13 @@ os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "true"
 
 db.init_app(app)
 limiter.init_app(app)
+csrf.init_app(app)
+csrf.exempt(auth_bp)
+csrf.exempt(user_bp)
+csrf.exempt(contact_bp)
+csrf.exempt(payment_bp)
+csrf.exempt(oauth_bp)
+csrf.exempt(books_bp)
 bcrypt.init_app(app)
 jwt.init_app(app)
 cors.init_app(app)

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import DoubleRangeSlider from "./DoubleRangeSlider";
 import { IoMdClose } from "react-icons/io";
-import { authAxios, getCookie } from '../utils/Auth';
+import { authAxios, getUsername } from '../utils/Auth';
 
 import './Books.css';
 
@@ -10,7 +10,7 @@ const Books = () =>
 {
     const navigate = useNavigate();
     const location = useLocation();
-    const username = getCookie("username");
+    const username = getUsername();
     
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);

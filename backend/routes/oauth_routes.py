@@ -1,8 +1,8 @@
 from datetime import timedelta
 import random
-from urllib.parse import urlencode
-import bcrypt
-from flask import Blueprint, redirect, request, jsonify, url_for
+import secrets
+from extensions import bcrypt
+from flask import Blueprint, redirect, request, jsonify, url_for, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, decode_token
 import os
 from sqlalchemy import func
@@ -12,6 +12,37 @@ from extensions import discord, oauth
 from models import db
 
 oauth_bp = Blueprint('oauth_bp', __name__)
+
+def generate_tokens(user_id):
+    access_token = create_access_token(identity=str(user_id), expires_delta=timedelta(minutes=10))
+    refresh_token = create_refresh_token(identity=str(user_id), expires_delta=timedelta(days=1))
+    return access_token, refresh_token
+
+
+def build_auth_response(user):
+    access_token, refresh_token = generate_tokens(user.id)
+
+    response = make_response(redirect(f"{os.getenv('URL')}/auth-callback"))
+
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=False,   # localhost, inaczej True
+        samesite="Lax",
+        max_age=600
+    )
+
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=False,   # localhost, inaczej True
+        samesite="Lax",
+        max_age=86400
+    )
+
+    return response
 
 @oauth_bp.route('/api/login/discord')
 def login_discord():
@@ -25,169 +56,160 @@ def login_github():
 @oauth_bp.route('/api/auth/discord')
 def auth_discord():
     try:
-        error = request.args.get("error")
-        if error == "access_denied":
+        if request.args.get("error") == "access_denied":
             response = redirect(f"{os.getenv('URL')}/login")
             response.delete_cookie("session")
             return response
-        
-        token = discord.callback()
+
+        discord.callback()
         discord_user = discord.fetch_user()
 
         discord_id = str(discord_user.id)
         username = discord_user.name
         email = discord_user.email
         avatar_url = discord_user.avatar_url
-        
+
         if not email:
-            return jsonify({"message": "Nie udało się pobrać adresu email z Discord."}), 400
-        
-        user = User.query.filter((User.discord_id == discord_id) | (func.lower(User.username) == username.lower()) | (func.lower(User.email) == email.lower())).first()
+            return jsonify({"message": "Brak emaila z Discord"}), 400
+
+        user = User.query.filter_by(discord_id=discord_id).first()
+
+        if not user:
+            user = User.query.filter(func.lower(User.email) == email.lower()).first()
+
+        if not user:
+            user = User.query.filter(func.lower(User.username) == username.lower()).first()
+
+        existing_email = User.query.filter(func.lower(User.email) == email.lower()).first()
+
+        if existing_email and not user:
+            return jsonify({"message": "Email już istnieje"}), 400
 
         if user:
             if not user.discord_id:
                 user.discord_id = discord_id
             if not user.avatar and avatar_url:
                 user.avatar = avatar_url
-            db.session.commit()
         else:
             if User.query.filter_by(username=username).first():
                 username = f"{username}_{random.randint(1000,9999)}"
-                
-            random_password = bcrypt.generate_password_hash(os.urandom(16)).decode('utf-8')
+
             user = User(
-                username=username, 
-                email=email, 
-                password=random_password, 
+                username=username,
+                email=email,
+                password=bcrypt.generate_password_hash(secrets.token_hex(32)).decode('utf-8'),
                 avatar=avatar_url,
                 discord_id=discord_id
             )
             db.session.add(user)
-            db.session.commit()
-        
+
+        db.session.commit()
         set_user_active(user.id)
 
-        access_token_expiresIn = "00:00:10:00"
-        refresh_token_expiresIn = "01:00:00:00"
-
-        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(minutes=10))
-        refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=1))
-
-        params = {
-            "username": user.username,
-            "email": user.email,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "expire_time": str(access_token_expiresIn),
-            "refresh_expire_time": str(refresh_token_expiresIn)
-        }
-        query = urlencode(params)
-        return redirect(f"{os.getenv('URL')}/auth-callback?{query}")
+        return build_auth_response(user)
 
     except Exception as e:
-        return jsonify({"message": f"Błąd podczas autentykacji Discord: {str(e)}"}), 500
+        db.session.rollback()
+        return jsonify({"message": f"Błąd Discord: {str(e)}"}), 500
+
 
 @oauth_bp.route('/api/auth/github')
 def auth_github():
-    error = request.args.get("error")
-    if error == "access_denied":
-        response = redirect("/login")
-        response.delete_cookie("session")
-        
-        return response
+    try:
+        if request.args.get("error") == "access_denied":
+            response = redirect(f"{os.getenv('URL')}/login")
+            response.delete_cookie("session")
+            return response
 
-    token = oauth.github.authorize_access_token()
-    user_data = oauth.github.get('user').json()
-    github_id = str(user_data.get("id"))
-    email = user_data.get("email")
-    username = user_data.get("login")
-    avatar_url = user_data.get("avatar_url")
-    
-    if not email:
-        emails = oauth.github.get('user/emails').json()
-        for em in emails:
-            if em.get("primary") and em.get("verified"):
-                email = em.get("email")
-                break
-    if not email:
-        return jsonify({"message": "Nie udało się pobrać adresu email z GitHub."}), 400
+        oauth.github.authorize_access_token()
+        user_data = oauth.github.get('user').json()
 
-    link_account = request.args.get("link", "false").lower() == "true"
-    if link_account:
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return jsonify({"message": "Brak tokenu JWT do powiązania konta."}), 401
-        try:
-            token_str = auth_header.split(" ")[1]
-            decoded = decode_token(token_str)
-            current_user_id = decoded['sub']
-        except Exception as e:
-            return jsonify({"message": "Nieprawidłowy token JWT."}), 401
+        github_id = str(user_data.get("id"))
+        email = user_data.get("email")
+        username = user_data.get("login")
+        avatar_url = user_data.get("avatar_url")
 
-        current_user = db.session.get(User, current_user_id)
-        if current_user is None:
-            return jsonify({"message": "Użytkownik nie istnieje."}), 404
+        if not isinstance(email, str) or not email:
+            emails = oauth.github.get('user/emails').json()
 
-        if current_user.github_id and current_user.github_id != github_id:
-            return jsonify({"message": "Twoje konto jest już powiązane z innym GitHub."}), 400
+            email = None
+            for em in emails:
+                if em.get("primary") and em.get("verified"):
+                    email = em.get("email")
+                    break
 
-        current_user.github_id = github_id
-        if not current_user.avatar and avatar_url:
-            current_user.avatar = avatar_url
-        db.session.commit()
-        return jsonify({"message": "Konto GitHub zostało pomyślnie powiązane."}), 200
+            if not email:
+                return jsonify({"message": "Brak zweryfikowanego emaila z GitHub"}), 400
 
-    user = User.query.filter((User.github_id == github_id) | (func.lower(User.username) == username.lower()) | (func.lower(User.email) == email.lower())).first()
+        link_account = request.args.get("link", "false").lower() == "true"
 
-    if user:
-        if not user.github_id:
+        if link_account:
+            auth_header = request.headers.get("Authorization")
+
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return jsonify({"message": "Brak tokenu"}), 401
+
+            try:
+                token_str = auth_header.split(" ")[1]
+                decoded = decode_token(token_str)
+
+                if not isinstance(decoded.get("sub"), str):
+                    return jsonify({"message": "Nieprawidłowy token"}), 401
+                
+                if not decoded["sub"].isdigit():
+                    return jsonify({"message": "Nieprawidłowy token"}), 401
+
+                user_id = decoded["sub"]
+            except Exception:
+                return jsonify({"message": "Nieprawidłowy token"}), 401
+
+            user = db.session.get(User, user_id)
+
+            if not user:
+                return jsonify({"message": "Użytkownik nie istnieje"}), 404
+
+            if user.github_id and user.github_id != github_id:
+                return jsonify({"message": "GitHub już przypisany"}), 400
+
             user.github_id = github_id
-        if not user.avatar and avatar_url:
-            user.avatar = avatar_url
-        db.session.commit()
+            if not user.avatar and avatar_url:
+                user.avatar = avatar_url
 
+            db.session.commit()
+
+            return jsonify({"message": "Konto powiązane"}), 200
+
+        user = User.query.filter_by(github_id=github_id).first()
+
+        if not user:
+            user = User.query.filter(func.lower(User.email) == email.lower()).first()
+
+        if not user:
+            user = User.query.filter(func.lower(User.username) == username.lower()).first()
+
+        if user:
+            if not user.github_id:
+                user.github_id = github_id
+            if not user.avatar and avatar_url:
+                user.avatar = avatar_url
+        else:
+            if User.query.filter_by(username=username).first():
+                username = f"{username}_{random.randint(1000,9999)}"
+
+            user = User(
+                username=username,
+                email=email,
+                password=bcrypt.generate_password_hash(secrets.token_hex(32)).decode('utf-8'),
+                avatar=avatar_url,
+                github_id=github_id
+            )
+            db.session.add(user)
+
+        db.session.commit()
         set_user_active(user.id)
 
-        access_token_expiresIn = "00:00:10:00"
-        refresh_token_expiresIn = "01:00:00:00"
+        return build_auth_response(user)
 
-        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(minutes=10))
-        refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=1))
-
-        params = {
-            "username": user.username,
-            "email": user.email,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "expire_time": str(access_token_expiresIn),
-            "refresh_expire_time": str(refresh_token_expiresIn)
-        }
-        query = urlencode(params)
-        return redirect(f"{os.getenv('URL')}/auth-callback?{query}")
-    else:
-        username = user_data.get("login")
-        if User.query.filter_by(username=username).first():
-            username = f"{username}_{random.randint(1000,9999)}"
-        random_password = bcrypt.generate_password_hash(os.urandom(16)).decode('utf-8')
-        new_user = User(username=username, email=email, password=random_password, avatar=avatar_url, github_id=github_id)
-        db.session.add(new_user)
-        db.session.commit()
-
-        set_user_active(new_user.id)
-
-        access_token_expiresIn = "00:00:10:00"
-        refresh_token_expiresIn = "01:00:00:00"
-
-        access_token = create_access_token(identity=str(new_user.id), expires_delta=timedelta(minutes=10))
-        refresh_token = create_refresh_token(identity=str(new_user.id), expires_delta=timedelta(days=1))
-
-        params = {
-            "username": new_user.username,
-            "email": new_user.email,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "expire_time": str(access_token_expiresIn),
-            "refresh_expire_time": str(refresh_token_expiresIn)
-        }
-        query = urlencode(params)
-        return redirect(f"{os.getenv('URL')}/auth-callback?{query}")
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Błąd GitHub: {str(e)}"}), 500

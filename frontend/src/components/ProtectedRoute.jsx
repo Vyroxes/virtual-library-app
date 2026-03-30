@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { isAuthenticated, isAccessTokenExpiringSoon } from '../utils/Auth';
+import { isAuthenticated } from '../utils/Auth';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -17,21 +17,13 @@ const ProtectedRoute = ({ children }) => {
         };
         checkAuth();
 
-        const interval = setInterval(async () => {
-            if (isAccessTokenExpiringSoon()) {
-                try {
-                    await refreshAccessToken();
-                } catch (e) {}
-            }
-        }, 5000);
-
         return () => {
             mounted = false;
-            clearInterval(interval);
         };
     }, []);
 
     if (auth === null) return null;
+    
     return auth ? (
         <>
             <Header />

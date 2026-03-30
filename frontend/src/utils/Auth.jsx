@@ -1,156 +1,204 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-const TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
 const USERNAME_KEY = 'username';
-
 const apiUrl = import.meta.env.VITE_API_URL;
 
-export const setTokens = (username, email, accessToken, refreshToken, accessTokenExpire, refreshTokenExpire) => {
-    const accessTokenExpireDate = new Date();
-    const [days, hours, minutes, seconds] = accessTokenExpire.split(':').map(Number);
-    accessTokenExpireDate.setDate(accessTokenExpireDate.getDate() + days);
-    accessTokenExpireDate.setHours(accessTokenExpireDate.getHours() + hours);
-    accessTokenExpireDate.setMinutes(accessTokenExpireDate.getMinutes() + minutes);
-    accessTokenExpireDate.setSeconds(accessTokenExpireDate.getSeconds() + seconds);
+let accessToken = null;
 
-    const refreshTokenExpireDate = new Date();
-    const [rDays, rHours, rMinutes, rSeconds] = refreshTokenExpire.split(':').map(Number);
-    refreshTokenExpireDate.setDate(refreshTokenExpireDate.getDate() + rDays);
-    refreshTokenExpireDate.setHours(refreshTokenExpireDate.getHours() + rHours);
-    refreshTokenExpireDate.setMinutes(refreshTokenExpireDate.getMinutes() + rMinutes);
-    refreshTokenExpireDate.setSeconds(refreshTokenExpireDate.getSeconds() + rSeconds);
-
-    const isSecure = window.location.protocol === 'https:';
-    const secureFlag = isSecure ? 'secure;' : '';
-
-    document.cookie = `${TOKEN_KEY}=${accessToken}; path=/; ${secureFlag} SameSite=Lax; expires=${accessTokenExpireDate.toUTCString()};`;
-    document.cookie = `${REFRESH_TOKEN_KEY}=${refreshToken}; path=/; ${secureFlag} SameSite=Lax; expires=${refreshTokenExpireDate.toUTCString()};`;
-    document.cookie = `${USERNAME_KEY}=${username}; path=/; ${secureFlag} SameSite=Lax; expires=${accessTokenExpireDate.toUTCString()};`;
+export const getCsrfToken = () => {
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? match[1] : null;
 };
 
-export const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+export const setAuthData = (username, token) => {
+    accessToken = token;
+    sessionStorage.setItem(USERNAME_KEY, username);
 };
 
-export const getAccessToken = () => getCookie(TOKEN_KEY);
-export const getRefreshToken = () => getCookie(REFRESH_TOKEN_KEY);
-export const getUsername = () => getCookie(USERNAME_KEY);
-
-export const clearTokens = () => {
-    const cookies = document.cookie.split(";");
-
-    cookies.forEach((cookie) => {
-        const cookieName = cookie.split("=")[0].trim();
-        document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-    });
+export const getUsername = () => {
+    return sessionStorage.getItem(USERNAME_KEY);
 };
 
-export const isAuthenticated = async () => {
-    const accessToken = getAccessToken();
+export const getAccessToken = () => accessToken;
 
-    if (!accessToken) {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-            clearTokens();
-            return false;
-        }
+export const clearAuth = () => {
+    accessToken = null;
+    sessionStorage.removeItem(USERNAME_KEY);
+};
 
-        try {
-            await refreshAccessToken();
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas odświeżania tokenu: ', error);
-            clearTokens();
-            return false;
-        }
+export const isAuthenticated = async (allowRefresh = true) => {
+    if (accessToken) {
+        return true;
     }
 
-    return true;
+    if (!allowRefresh) {
+        return false;
+    }
+
+    try {
+        await refreshAccessToken();
+        return true;
+    } catch {
+        clearAuth();
+        return false;
+    }
 };
 
 export const refreshAccessToken = async () => {
-    try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-            console.error('Brak refresh tokenu.');
-            return;
-        }
-
-        if (isAccessTokenExpiringSoon() || !getAccessToken() || !getUsername()) {
-            const response = await axios.post(`${apiUrl}/api/refresh`, {
-                refresh_token: refreshToken
-            }, {
-                withCredentials: true,
-            });
-            
-            if (response.status === 200) {
-                setTokens(response.data.username, response.data.email, response.data.access_token, response.data.refresh_token, response.data.expire_time, response.data.refresh_expire_time);
-                console.log('Token odświeżony pomyślnie.');
-                return response.data.access_token;
+    const response = await axios.post(
+        `${apiUrl}/api/refresh`,
+        {},
+        { 
+            withCredentials: true,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
             }
         }
-    } catch (error) {
-        console.error('Błąd poczas odświeżania tokenu: ', error);
-        clearTokens();
-        throw error;
-    }
+    );
+
+    accessToken = response.data.access_token;
+    sessionStorage.setItem(USERNAME_KEY, response.data.username);
+
+    return accessToken;
 };
 
-export const getTokenExpireDate = (name) => {
-    const token = getCookie(name);
+export const getTokenExpireDate = (token) => {
     if (!token) return null;
 
     try {
-        const decodedToken = jwtDecode(token);
-        if (decodedToken && decodedToken.exp) {
-            return new Date(decodedToken.exp * 1000);
-        }
-    } catch (error) {
-        console.error('Błąd podczas dekodowania tokenu:', error);
+        const decoded = jwtDecode(token);
+        return new Date(decoded.exp * 1000);
+    } catch {
         return null;
     }
 };
 
 export const isAccessTokenExpiringSoon = () => {
-    const expireDate = getTokenExpireDate("access_token");
+    const expireDate = getTokenExpireDate(accessToken);
     if (!expireDate) return false;
 
-    const expireTime = expireDate.getTime();
-    const currentTime = new Date().getTime();
-
-    return expireTime - currentTime < 10 * 1000;
+    return expireDate.getTime() - Date.now() < 10 * 1000;
 };
 
-export const authAxios = axios.create();
+export const logout = async () => {
+    await axios.post(
+        `${apiUrl}/api/logout`,
+        {},
+        { 
+            withCredentials: true,
+            headers: {
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'X-CSRFToken': getCsrfToken()
+            }
+        }
+    );
 
-authAxios.interceptors.request.use(async (config) => {
-    let token = getAccessToken();
+    clearAuth();
+};
 
-    if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
+export const authAxios = axios.create({
+    withCredentials: true
+});
+
+let refreshPromise = null;
+
+const ensureFreshToken = async () => {
+    const token = getAccessToken();
+
+    if (!token || isAccessTokenExpiringSoon()) {
+        if (!refreshPromise) {
+            refreshPromise = refreshAccessToken().finally(() => {
+                refreshPromise = null;
+            });
+        }
+        return refreshPromise;
     }
 
-    return config;
-}, (error) => Promise.reject(error));
+    return token;
+};
+
+authAxios.interceptors.request.use(async (config) => {
+    const url = config.url || "";
+
+    const isAuthEndpoint =
+        url.includes('/api/login') ||
+        url.includes('/api/register') ||
+        url.includes('/api/refresh');
+
+    if (!isAuthEndpoint) {
+        try {
+            await ensureFreshToken();
+        } catch {
+        }
+    }
+
+    const token = getAccessToken();
+    const csrfToken = getCsrfToken();
+
+    return {
+        ...config,
+        headers: {
+            ...config.headers,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+        }
+    };
+});
+
+let isRefreshing = false;
+let queue = [];
 
 authAxios.interceptors.response.use(
-    (response) => response,
+    res => res,
     async (error) => {
-        const originalRequest = error.config;
+        const original = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+        if (error.response?.status === 401 && !original._retry) {
+            original._retry = true;
+
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    queue.push((token) => {
+                        if (!token) {
+                            reject(error);
+                            return;
+                        }
+
+                        resolve(authAxios({
+                            ...original,
+                            headers: {
+                                ...original.headers,
+                                Authorization: `Bearer ${token}`
+                            }
+                        }));
+                    });
+                });
+            }
+
+            isRefreshing = true;
+
             try {
                 const newToken = await refreshAccessToken();
-                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-                return authAxios(originalRequest);
-            } catch (refreshError) {
-                console.error('Błąd poczas odświeżania tokenu: ', refreshError);
-                return Promise.reject(refreshError);
+
+                queue.forEach(cb => cb(newToken));
+                queue = [];
+
+                return authAxios({
+                    ...original,
+                    headers: {
+                        ...original.headers,
+                        Authorization: `Bearer ${newToken}`
+                    }
+                });
+            } catch (err) {
+                queue.forEach(cb => cb(null));
+                queue = [];
+
+                clearAuth();
+                return Promise.reject(err);
+            } finally {
+                isRefreshing = false;
             }
         }
 

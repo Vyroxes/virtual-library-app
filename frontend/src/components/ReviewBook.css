@@ -67,6 +67,73 @@
     animation-delay: 0.7s;
 }
 
+.star-rating {
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.star-wrapper {
+    position: relative;
+    width: 46px;
+    height: 46px;
+}
+
+.star-wrapper button {
+    box-shadow: none;
+}
+
+.star-hitbox {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.star-hitbox.left {
+    left: 0;
+}
+
+.star-hitbox.right {
+    right: 0;
+}
+
+.star-hitbox:hover,
+.star-hitbox:focus,
+.star-hitbox:active {
+    transform: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.star {
+    font-size: 42px;
+    line-height: 1;
+    color: #5c5c5c;
+    pointer-events: none;
+}
+
+.star.filled {
+    color: #ffd54a;
+}
+
+.star.half-filled {
+    background: linear-gradient(90deg, #ffd54a 50%, #5c5c5c 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.star-value {
+    margin-left: 1em;
+    font-weight: 600;
+    min-width: 105px;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

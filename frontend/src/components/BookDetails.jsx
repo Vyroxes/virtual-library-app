@@ -136,7 +136,22 @@ const BookDetails = () => {
                     />
                 </div>
                 <div className='book-details-info'>
-                    <h1>{book.id}. {book.title}</h1>
+                    <h1>{book.id}. {book.title}
+                        <div className="rate-wrapper" onClick={() => {
+                            if (location.pathname.startsWith("/bc-book-details/")) {
+                                navigate(`/bc-review-book/${id}`);
+                            } else if (location.pathname.startsWith("/wl-book-details/")) {
+                                navigate(`/wl-review-book/${id}`);
+                            }
+                        }}>
+                            <span className="book-details-star">
+                                ★
+                            </span>
+                            <span className="book-details-rate">
+                                {book.rate || "Brak oceny"}
+                            </span>
+                        </div>
+                    </h1>
                     <h2>{book.author}</h2>
                     <h3>Gatunki: {book.genres}</h3>
                     <h3>Wydawnictwo: {book.publisher}</h3>

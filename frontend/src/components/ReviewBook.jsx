@@ -10,7 +10,7 @@ const ReviewBook = () => {
 
     const [book, setBook] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [rate, setRate] = useState("");
+    const [rate, setRate] = useState(null);
     const [review, setReview] = useState("");
 
     const { id } = useParams();
@@ -23,7 +23,7 @@ const ReviewBook = () => {
 
     useEffect(() => {
         if (book && Object.keys(book).length > 0) {
-            setRate(book.rate || "");
+            setRate(book.rate ?? null);
             setReview(book.review || "");
         }
     }, [book]);
@@ -104,7 +104,7 @@ const ReviewBook = () => {
             const type = location.pathname.startsWith("/bc-review-book/") ? "bc" : "wl";
 
             response = await authAxios.patch(`${apiUrl}/api/review-book/${type}/${id}`, {
-                rate,
+                rate: rate ?? null,
                 review,
             });
 
@@ -126,6 +126,59 @@ const ReviewBook = () => {
         await onSubmit();
     };
 
+    const StarRating = ({ value, onChange, max = 10 }) => {
+        const [hoverValue, setHoverValue] = useState(null);
+
+        const displayValue = hoverValue ?? value ?? 0;
+
+        return (
+            <div
+                className="star-rating"
+                onMouseLeave={() => setHoverValue(null)}
+            >
+                {Array.from({ length: max }, (_, i) => {
+                    const starIndex = i + 1;
+
+                    return (
+                        <div key={i} className="star-wrapper">
+                            <button
+                                type="button"
+                                className="star-hitbox half left"
+                                onMouseEnter={() => setHoverValue(starIndex - 0.5)}
+                                onClick={() =>
+                                    onChange(value === starIndex - 0.5 ? null : starIndex - 0.5)
+                                }
+                            />
+                            <button
+                                type="button"
+                                className="star-hitbox half right"
+                                onMouseEnter={() => setHoverValue(starIndex)}
+                                onClick={() =>
+                                    onChange(value === starIndex ? null : starIndex)
+                                }
+                            />
+                            <span
+                                className={`star ${
+                                    displayValue >= starIndex
+                                        ? "filled"
+                                        : displayValue >= starIndex - 0.5
+                                        ? "half-filled"
+                                        : ""
+                                }`}
+                            >
+                                ★
+                            </span>
+                        </div>
+                    );
+                })}
+
+                <span className="star-value">
+                    {value ? value.toFixed(1) : "Brak oceny"}
+                </span>
+            </div>
+        );
+    };
+
     if (loading) {
         return;
     }
@@ -136,17 +189,7 @@ const ReviewBook = () => {
             <form onSubmit={handleSubmit}>
                 <div className='review-book-row'>
                     <a>Ocena</a>
-                    <input
-                        type="number"
-                        id="rate"
-                        name='rate'
-                        required
-                        min={0}
-                        max={10}
-                        step={0.1}
-                        value={rate}
-                        onChange={(e) => setRate(e.target.value)}
-                    />
+                    <StarRating value={rate} onChange={setRate} max={10} />
                 </div>
                 <div className='review-book-row'>
                     <a>Recenzja</a>

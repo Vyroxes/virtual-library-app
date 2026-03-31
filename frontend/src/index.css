@@ -127,8 +127,12 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
+    font-size: 1rem !important;
+    line-height: 1.0 !important;
     -webkit-text-fill-color: white !important;
     -webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.1) inset !important;
+    box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.1) inset !important;
+    -webkit-background-clip: border-box !important;
     transition: background-color 5000s ease-in-out 0s;
     caret-color: white !important;
     color: white !important;

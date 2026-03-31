@@ -71,6 +71,37 @@
     gap: 5px;
 }
 
+.rate-wrapper {
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    margin-left: 1rem;
+}
+
+.rate-wrapper:hover {
+    cursor: pointer;
+    transform: translateY(-3px);
+}
+
+.rate-wrapper:hover .book-details-star {
+    color: #ffe655;
+}
+
+.rate-wrapper:hover .book-details-rate {
+    color: #49c34d;
+}
+
+.book-details-star {
+    color: #ffd54a;
+    font-size: 1.8rem;
+}
+
+.book-details-rate {
+    font-size: 2rem;
+    color: #4caf50;
+    margin-left: 0.5rem;
+}
+
 .book-details-info h1 {
     font-size: 2.5rem;
     color: #ffffff;
@@ -78,6 +109,7 @@
     position: relative;
     display: inline-block;
     animation: slideInRight 0.8s ease forwards;
+    display: flex;
 }
 
 .book-details-info h2 {

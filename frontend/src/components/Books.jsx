@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import DoubleRangeSlider from "./DoubleRangeSlider";
 import { IoMdClose } from "react-icons/io";
@@ -216,6 +216,59 @@ const Books = () =>
 
     const isDisabledResetButton = Object.keys(filterCriteria.genres).length === 0 && initialBounds.minPages === filterCriteria.minPages && initialBounds.maxPages === filterCriteria.maxPages && initialBounds.minYear === filterCriteria.minYear && initialBounds.maxYear === filterCriteria.maxYear;
 
+    const normalizeGenres = (value) =>
+        (value || "")
+            .toLowerCase()
+            .split(",")
+            .map((g) => g.trim())
+            .filter(Boolean);
+
+    const baseFilteredForFacets = useMemo(() => {
+        return books.filter((book) => {
+            const matchesSearch =
+                book.title?.toLowerCase().includes(search.toLowerCase()) ||
+                book.author?.toLowerCase().includes(search.toLowerCase());
+
+            const pagesMatch =
+                book.pages >= filterCriteria.minPages &&
+                book.pages <= filterCriteria.maxPages;
+
+            const dateParts = book.date.split("-");
+            const year = parseInt(dateParts[2], 10);
+            const yearMatch =
+                year >= filterCriteria.minYear &&
+                year <= filterCriteria.maxYear;
+
+            return matchesSearch && pagesMatch && yearMatch;
+        });
+    }, [books, search, filterCriteria.minPages, filterCriteria.maxPages, filterCriteria.minYear, filterCriteria.maxYear]);
+
+    const selectedGenres = useMemo(
+        () => Object.keys(filterCriteria.genres).filter((g) => filterCriteria.genres[g]),
+        [filterCriteria.genres]
+    );
+
+    const genreCounts = useMemo(() => {
+        const counts = {};
+
+        for (const genre of genresList) {
+            const selectedWithoutCurrent = selectedGenres.filter((g) => g !== genre);
+
+            counts[genre] = baseFilteredForFacets.filter((book) => {
+                const bookGenres = normalizeGenres(book.genres);
+
+                if (selectedWithoutCurrent.length === 0) {
+                    return bookGenres.includes(genre);
+                }
+
+                const matchesOtherSelected = selectedWithoutCurrent.every((g) => bookGenres.includes(g));
+                return matchesOtherSelected && bookGenres.includes(genre);
+            }).length;
+        }
+
+        return counts;
+    }, [genresList, selectedGenres, baseFilteredForFacets]);
+
     if(loading) {
         return;
     }
@@ -223,7 +276,8 @@ const Books = () =>
     return (
         <div className='book-collection'>
             <div className='book-collection-bar'>
-            <div className='book-collection-bar-container1'>
+                <div className='book-collection-bar-container1'>
+                    <p>Ilość książek: {filteredBooks.length}</p>
                 </div>
                 <div className='book-collection-bar-container2'>
                     <button disabled={isDisabled} onClick={handleSortClick}>
@@ -278,27 +332,30 @@ const Books = () =>
                         <input
                             type="checkbox"
                             checked={filterCriteria.genres[genre] || false}
-                            disabled={books.length === 0}
+                            disabled={
+                                books.length === 0 ||
+                                (!filterCriteria.genres[genre] && (genreCounts[genre] || 0) === 0)
+                            }
                             onChange={(e) => {
                                 const updatedGenres = { ...filterCriteria.genres };
-    
+
                                 if (e.target.checked) {
-                                updatedGenres[genre] = true;
+                                    updatedGenres[genre] = true;
                                 } else {
-                                delete updatedGenres[genre];
+                                    delete updatedGenres[genre];
                                 }
-                                
+
                                 setFilterCriteria({
-                                ...filterCriteria,
-                                genres: updatedGenres
+                                    ...filterCriteria,
+                                    genres: updatedGenres
                                 });
                             }}
                         />
-                        {genre}
+                            {genre} ({genreCounts[genre] || 0})
                         </label>
                     ))}
                 </div>
-                    <div className="book-collection-filter-controls">
+                <div className="book-collection-filter-controls">
                     <h3>Liczba stron</h3>
                     <DoubleRangeSlider
                         initialBounds={initialBounds}
@@ -306,7 +363,7 @@ const Books = () =>
                         setFilterCriteria={setFilterCriteria}
                         isDisabled={books.length === 0}
                     />
-                    </div>
+                </div>
                 <div className="book-collection-filter-controls">
                     <h3>Rok wydania</h3>
                     <DoubleRangeSlider

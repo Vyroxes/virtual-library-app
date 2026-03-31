@@ -7,6 +7,10 @@
     animation: slideInDown 0.7s ease-out forwards;
 }
 
+.book-collection-bar-container1 p {
+    font-size: 1.1rem;
+}
+
 .book-collection-bar-container2,
 .book-collection-bar-container4 {
     width: 100%;
@@ -16,14 +20,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 80%;
+    width: 100%;
     margin: 0 20px;
     position: relative;
 }
 
 .book-collection-bar-container1,
 .book-collection-bar-container5 {
-    width: 20%;
+    width: 100%;
 }
 
 .book-collection-bar-container2 {

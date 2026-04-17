@@ -225,6 +225,7 @@ docker compose up --build
 ```
 
 Frontend: `http://localhost:5173`
+
 Backend (API): `http://localhost:5000`
 
 ### Instalacja zależności
@@ -293,6 +294,7 @@ npm run dev
 ```
 
 Frontend: `http://localhost:5173`
+
 Backend (API): `http://localhost:5000`
 
 ---

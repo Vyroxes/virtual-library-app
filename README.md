@@ -224,6 +224,7 @@ docker compose up --build
 ```
 
 Frontend: `http://localhost:5173`
+
 Backend (API): `http://localhost:5000`
 
 ### Installing dependencies
@@ -292,6 +293,7 @@ npm run dev
 ```
 
 Frontend: `http://localhost:5173`
+
 Backend (API): `http://localhost:5000`
 
 ---

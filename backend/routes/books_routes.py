@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
 from sqlalchemy import func
+from routes.user_routes import get_user_plan_and_limit
 from models.user import User
 from controllers.books_controller import add_book_to_collection, add_book_to_wishlist, get_books_for_user, get_wishlist_for_user
 from models.book_collection import BookCollection
@@ -15,6 +16,13 @@ from models import db
 from extensions import limiter
 
 books_bp = Blueprint('booklist_bp', __name__)
+
+def get_books_count_for_type(user_id, list_type):
+    if list_type == "bc":
+        return BookCollection.query.filter_by(user_id=user_id).count()
+    if list_type == "wl":
+        return WishList.query.filter_by(user_id=user_id).count()
+    return 0
 
 @books_bp.route('/api/<string:username>/<string:type>', methods=['GET'])
 @jwt_required()
@@ -217,16 +225,40 @@ def add_book(type):
         except (ValueError, TypeError):
             return jsonify({"error": "Nieprawidłowy format danych."}), 400
 
+        plan, limit = get_user_plan_and_limit(user_id)
+
         if type == 'bc':
+            current_count = get_books_count_for_type(user_id, "bc")
+            if current_count >= limit:
+                return jsonify({
+                    "error": f"Osiągnięto limit książek w kolekcji dla planu {plan}: {limit}.",
+                    "plan": plan,
+                    "limit": limit,
+                    "current": current_count,
+                    "list_type": "book-collection"
+                }), 403
+
             book, error = add_book_to_collection(user_id, data)
             if error:
                 return jsonify({"error": error}), 400
             return jsonify({"message": "Książka dodana do kolekcji."}), 201
+        
         elif type == 'wl':
+            current_count = get_books_count_for_type(user_id, "wl")
+            if current_count >= limit:
+                return jsonify({
+                    "error": f"Osiągnięto limit książek na liście życzeń dla planu {plan}: {limit}.",
+                    "plan": plan,
+                    "limit": limit,
+                    "current": current_count,
+                    "list_type": "wish-list"
+                }), 403
+
             book, error = add_book_to_wishlist(user_id, data)
             if error:
                 return jsonify({"error": error}), 400
             return jsonify({"message": "Książka dodana do listy życzeń."}), 201
+        
     except IntegrityError:
         db.session.rollback()
         return jsonify({"error": "Błąd podczas dodawania książki do bazy danych."}), 500

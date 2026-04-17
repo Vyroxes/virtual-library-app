@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authAxios } from '../utils/Auth';
+import { authAxios, refreshAccessToken } from '../utils/Auth';
 
 const AuthCallback = () => {
   const [loading, setLoading] = useState(true);
@@ -12,6 +12,8 @@ const AuthCallback = () => {
     const handleAuthCallback = async () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 300));
+
+        await refreshAccessToken();
 
         const response = await authAxios.get(`${apiUrl}/api/me`);
 

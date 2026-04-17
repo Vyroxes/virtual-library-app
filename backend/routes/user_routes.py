@@ -1,6 +1,8 @@
 
+from datetime import datetime
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+import pytz
 from controllers.user_controller import delete_user_and_data, get_all_users, get_user_by_username
 from models.subscription import Subscription
 from models import User, BookCollection, WishList, db
@@ -9,6 +11,28 @@ from routes.activity_tracker import is_user_active
 import os
 
 user_bp = Blueprint('user_bp', __name__)
+
+PLAN_LIMITS = {
+    "FREE": 50,
+    "PREMIUM": 100,
+    "PREMIUM+": 200
+}
+
+def get_user_plan_and_limit(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        return "FREE", PLAN_LIMITS["FREE"]
+
+    sub = Subscription.query.filter_by(
+        username=user.username,
+        status="ACTIVE"
+    ).order_by(Subscription.end_date.desc()).first()
+
+    now = datetime.now(pytz.timezone("Europe/Warsaw"))
+    if not sub or sub.end_date <= now:
+        return "FREE", PLAN_LIMITS["FREE"]
+
+    return sub.plan, PLAN_LIMITS.get(sub.plan, PLAN_LIMITS["FREE"])
 
 @user_bp.route('/api/delete-account/<string:username>', methods=['DELETE'])
 @jwt_required()

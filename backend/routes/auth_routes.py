@@ -160,6 +160,17 @@ def logout():
     except Exception as e:
         return jsonify({"message": "Błąd podczas wylogowania: " + str(e)}), 500
 
+@auth_bp.route('/api/activity', methods=['POST'])
+@jwt_required()
+def heartbeat():
+    try:
+        user_id = get_jwt_identity()
+        set_user_active(int(user_id))
+        return jsonify({"message": "Aktywność odświeżona."}), 200
+    
+    except Exception as e:
+        return jsonify({"message": "Błąd podczas odświeżania aktywności: " + str(e)}), 500
+
 @auth_bp.route('/api/login', methods=['POST'])
 @limiter.limit("5 per minute")
 def login():

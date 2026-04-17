@@ -32,18 +32,20 @@ const Users = () => {
                     );
 
                     setUsers(filteredUsers);
-                    setLoading(false);
                 }
             } catch (error) {
                 console.error("Błąd podczas pobierania danych użytkowników:", error);
+            } finally {
                 if (isMounted) setLoading(false);
             }
         };
 
         fetchUsers();
+        const intervalId = setInterval(fetchUsers, 15000);
 
         return () => {
             isMounted = false;
+            clearInterval(intervalId);
         };
     }, [apiUrl, currentUsername]);
 

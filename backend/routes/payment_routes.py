@@ -88,8 +88,8 @@ def payments_create():
             "subscriptionId": subscription.id,
             "plan": plan
         },
-        success_url=f"{os.getenv('URL')}/premium?status=ok",
-        cancel_url=f"{os.getenv('URL')}/premium?status=cancelled",
+        success_url=f"{os.getenv('URL')}:5173/premium?status=ok",
+        cancel_url=f"{os.getenv('URL')}:5173/premium?status=cancelled",
     )
     subscription.payment_id = session.id
     db.session.commit()

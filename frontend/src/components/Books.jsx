@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
+import Select from "react-select";
 import DoubleRangeSlider from "./DoubleRangeSlider";
 import { IoMdClose } from "react-icons/io";
 import { authAxios, getUsername } from '../utils/Auth';
@@ -17,6 +18,15 @@ const Books = () =>
     const [search, setSearch] = useState("");
     const [sortMethod, setSortMethod] = useState("idAsc");
     const [filterVisible, setFilterVisible] = useState(false);
+
+    const PLAN_LIMITS = {
+        "FREE": 50,
+        "PREMIUM": 100,
+        "PREMIUM+": 200
+    };
+
+    const [userPlan, setUserPlan] = useState("FREE");
+    const [planLoading, setPlanLoading] = useState(true);
 
     const [filterCriteria, setFilterCriteria] = useState({
         genres: {},
@@ -61,18 +71,18 @@ const Books = () =>
     ];
 
     const sortLabels = {
-        idAsc: "Data dodania ↑",
-        idDesc: "Data dodania ↓",
-        titleAsc: "Tytuł ↑",
-        titleDesc: "Tytuł ↓",
-        authorAsc: "Autor ↑",
-        authorDesc: "Autor ↓",
-        dateAsc: "Data wydania ↑",
-        dateDesc: "Data wydania ↓",
-        pagesAsc: "Liczba stron ↑",
-        pagesDesc: "Liczba stron ↓",
-        rateAsc: "Ocena ↑",
-        rateDesc: "Ocena ↓"
+        idAsc: "ID: Rosnąco",
+        idDesc: "ID: Malejąco",
+        titleAsc: "Tytuł: A-Z",
+        titleDesc: "Tytuł: Z-A",
+        authorAsc: "Autor: A-Z",
+        authorDesc: "Autor: Z-A",
+        dateAsc: "Data wydania: Rosnąco",
+        dateDesc: "Data wydania: Malejąco",
+        pagesAsc: "Liczba stron: Rosnąco",
+        pagesDesc: "Liczba stron: Malejąco",
+        rateAsc: "Ocena: Rosnąco",
+        rateDesc: "Ocena: Malejąco"
     };
 
     const sortMethods = [
@@ -84,12 +94,90 @@ const Books = () =>
         "rateAsc", "rateDesc"
     ];
 
+    const options = sortMethods.map(method => ({
+        value: method,
+        label: sortLabels[method]
+    }))
+
+    const selectedOption = options.find(opt => opt.value === sortMethod)
+
+    const [selectedBookIds, setSelectedBookIds] = useState(new Set());
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+
     const apiUrl = import.meta.env.VITE_API_URL;
     
     useEffect(() => {
         setLoading(true);
         fetchBooks();
     }, [location.pathname]);
+
+    const toggleSelectionMode = () => {
+        setIsSelectionMode((prev) => {
+            const next = !prev;
+            if (!next) {
+                clearSelection();
+            }
+            return next;
+        });
+    };
+
+    const toggleBookSelection = (bookId) => {
+        setSelectedBookIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(bookId)) next.delete(bookId);
+            else next.add(bookId);
+            return next;
+        });
+    };
+
+    const clearSelection = () => setSelectedBookIds(new Set());
+
+    const selectAllVisible = () => {
+        setSelectedBookIds(new Set(filteredBooks.map((b) => b.id)));
+    };
+
+    const unselectAllVisible = () => {
+        setSelectedBookIds((prev) => {
+            const next = new Set(prev);
+            filteredBooks.forEach((b) => next.delete(b.id));
+            return next;
+        });
+    };
+
+    const bulkAction = async (action) => {
+        if (selectedBookIds.size === 0) return;
+
+        const ids = Array.from(selectedBookIds);
+        const type = location.pathname.startsWith("/book-collection") ? "bc" : "wl";
+
+        const confirmMsgMap = {
+            remove: `Usunąć ${ids.length} wybranych książek?`,
+            move: type === "bc"
+                ? `Przenieść ${ids.length} wybranych książek na listę życzeń?`
+                : `Przenieść ${ids.length} wybranych książek do kolekcji?`,
+        };
+
+        if (!window.confirm(confirmMsgMap[action])) return;
+
+        try {
+            if (action === "remove") {
+                await Promise.all(
+                    ids.map((id) => authAxios.delete(`${apiUrl}/api/remove-book/${type}/${id}`))
+                );
+            }
+
+            if (action === "move") {
+                await Promise.all(
+                    ids.map((id) => authAxios.post(`${apiUrl}/api/move-book-to/${type}/${id}`))
+                );
+            }
+
+            clearSelection();
+            await fetchBooks();
+        } catch (error) {
+            console.error("Błąd operacji zbiorczej:", error);
+        }
+    };
 
     const fetchBooks = async () => 
     {
@@ -132,6 +220,28 @@ const Books = () =>
             console.error('Błąd podczas ładowania książek w kolekcji/na liście życzeń: ', error);
         }
     };
+
+    useEffect(() => {
+        const fetchUserPlan = async () => {
+            try {
+                const response = await authAxios.get(`${apiUrl}/api/user/${username}`);
+                if (response.status === 200) {
+                    setUserPlan(response.data.premium || "FREE");
+                }
+            } catch (error) {
+                console.error("Błąd podczas pobierania planu użytkownika:", error);
+                setUserPlan("FREE");
+            } finally {
+                setPlanLoading(false);
+            }
+        };
+
+        fetchUserPlan();
+    }, [apiUrl, username]);
+
+    const currentLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS.FREE;
+    const currentCount = books.length;
+    const canAddBook = currentCount < currentLimit;
 
     const handleSortClick = () => 
     {
@@ -275,14 +385,57 @@ const Books = () =>
 
     return (
         <div className='book-collection'>
+            {isSelectionMode && (
+                <div className="bulk-actions">
+                    <button
+                        type="button"
+                        disabled={filteredBooks.length === 0}
+                        onClick={selectAllVisible}
+                    >
+                        Zaznacz wszystkie
+                    </button>
+                <button
+                    type="button"
+                    disabled={selectedBookIds.size === 0}
+                    onClick={unselectAllVisible}
+                >
+                    Odznacz wybrane
+                </button>
+                <button
+                    type="button"
+                    disabled={selectedBookIds.size === 0}
+                    onClick={() => bulkAction("move")}
+                >
+                    {location.pathname.startsWith("/book-collection")
+                        ? "Przenieś wybrane do listy życzeń"
+                        : "Przenieś wybrane do kolekcji"}
+                </button>
+                <button
+                    type="button"
+                    disabled={selectedBookIds.size === 0}
+                    onClick={() => bulkAction("remove")}
+                >
+                    Usuń wybrane
+                </button>
+                <button disabled={books.length === 0} onClick={() => removeAllBooks()}>Usuń wszystko</button>
+                <span>Wybrane: {selectedBookIds.size}</span>
+            </div>)}
             <div className='book-collection-bar'>
                 <div className='book-collection-bar-container1'>
-                    <p>Ilość książek: {filteredBooks.length}</p>
+                    <span>Ilość książek: {filteredBooks.length} / {currentLimit} (Plan {userPlan})</span>
                 </div>
                 <div className='book-collection-bar-container2'>
-                    <button disabled={isDisabled} onClick={handleSortClick}>
-                        Sortuj ({sortLabels[sortMethod]})
-                    </button>
+                    <Select
+                        className="select"
+                        classNamePrefix="select"
+                        isDisabled={isDisabled}
+                        value={selectedOption}
+                        onChange={(selected) => setSortMethod(selected.value)}
+                        options={options}
+                        isSearchable={false}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                    />
                 </div>
                 <div className='book-collection-bar-container3'>
                     <input
@@ -307,18 +460,28 @@ const Books = () =>
                 </div>
                 <div className='book-collection-bar-container4'>
                     <button disabled={books.length === 0} onClick={() => setFilterVisible((prevState) => !prevState)}>
-                        Filtruj
+                        {filterVisible ? "Ukryj filtry" : "Pokaż filtry"}
                     </button>
-                    <button disabled={books.length === 0} onClick={() => removeAllBooks()}>Usuń wszystko</button>
+                    <button
+                        type="button"
+                        disabled={books.length === 0}
+                        onClick={toggleSelectionMode}
+                    >
+                        {isSelectionMode ? "Anuluj wybieranie" : "Wybierz"}
+                    </button>
                 </div>
                 <div className='book-collection-bar-container5'>
-                    <button onClick={() => {
-                        if(location.pathname === "/book-collection") {
-                            navigate("/bc-add-book")
-                        } else if(location.pathname === "/wish-list") {
-                            navigate("/wl-add-book")
-                        }
-                    }}>
+                    <button
+                        disabled={!canAddBook || planLoading}
+                        onClick={() => {
+                            if (!canAddBook) return;
+                            if(location.pathname === "/book-collection") {
+                                navigate("/bc-add-book")
+                            } else if(location.pathname === "/wish-list") {
+                                navigate("/wl-add-book")
+                            }
+                        }}
+                    >
                         Dodaj
                     </button>
                 </div>
@@ -390,16 +553,24 @@ const Books = () =>
                 {filteredBooks.length > 0 ? (
                     filteredBooks.map((book, index) => (
                         <div className='book-card-container' style={{"--card-index": index}} key={book.id}>
-                            <div className="book-card" onClick={() => {
-                                    if(location.pathname === "/book-collection")
-                                    {
-                                        navigate(`/bc-book-details/${book.id}`);
+                            <div className={selectedBookIds.has(book.id) ? "book-card is-selected" : "book-card"} onClick={() => {
+                                    if (isSelectionMode) {
+                                        toggleBookSelection(book.id);
+                                        return;
                                     }
-                                    else if(location.pathname === "/wish-list")
-                                    {
+                                    if(location.pathname === "/book-collection") {
+                                        navigate(`/bc-book-details/${book.id}`);
+                                    } else if(location.pathname === "/wish-list") {
                                         navigate(`/wl-book-details/${book.id}`);
                                     }
                                 }}>
+                                {isSelectionMode && (<input
+                                    className="book-card-checkbox"
+                                    type="checkbox"
+                                    checked={selectedBookIds.has(book.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={() => toggleBookSelection(book.id)}
+                                />)}
                                 <img
                                     src={book.cover || "/unknown.jpg"}
                                     alt={book.title}

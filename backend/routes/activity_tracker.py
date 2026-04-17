@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 active_users = {}
 
-ACTIVITY_TIMEOUT = 15
+ACTIVITY_TIMEOUT = 2
 
 def set_user_active(user_id):
     active_users[user_id] = datetime.now()

@@ -3,7 +3,8 @@ import random
 import secrets
 from extensions import bcrypt
 from flask import Blueprint, redirect, request, jsonify, url_for, make_response
-from flask_jwt_extended import create_access_token, create_refresh_token, decode_token
+from flask_jwt_extended import create_refresh_token, decode_token
+from flask_wtf.csrf import generate_csrf
 import os
 from sqlalchemy import func
 from routes.activity_tracker import set_user_active
@@ -13,25 +14,11 @@ from models import db
 
 oauth_bp = Blueprint('oauth_bp', __name__)
 
-def generate_tokens(user_id):
-    access_token = create_access_token(identity=str(user_id), expires_delta=timedelta(minutes=10))
-    refresh_token = create_refresh_token(identity=str(user_id), expires_delta=timedelta(days=1))
-    return access_token, refresh_token
-
 
 def build_auth_response(user):
-    access_token, refresh_token = generate_tokens(user.id)
+    refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=1))
 
-    response = make_response(redirect(f"{os.getenv('URL')}/auth-callback"))
-
-    response.set_cookie(
-        "access_token",
-        access_token,
-        httponly=True,
-        secure=False,   # localhost, inaczej True
-        samesite="Lax",
-        max_age=600
-    )
+    response = make_response(redirect(f"{os.getenv('URL')}:5173/auth-callback"))
 
     response.set_cookie(
         "refresh_token",
@@ -42,11 +29,20 @@ def build_auth_response(user):
         max_age=86400
     )
 
+    response.set_cookie(
+        "csrf_token",
+        generate_csrf(),
+        httponly=False,
+        secure=False,   # localhost, inaczej True
+        samesite="Lax",
+        max_age=86400
+    )
+
     return response
 
 @oauth_bp.route('/api/login/discord')
 def login_discord():
-    return discord.create_session(scope=["identify", "email"])
+    return discord.create_session(scope=["identify", "email"], prompt=False)
 
 @oauth_bp.route('/api/login/github')
 def login_github():

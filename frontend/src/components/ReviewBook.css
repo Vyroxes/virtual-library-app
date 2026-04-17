@@ -131,7 +131,8 @@
 .star-value {
     margin-left: 1em;
     font-weight: 600;
-    min-width: 105px;
+    min-width: 40px;
+    text-align: right;
 }
 
 @keyframes fadeIn {

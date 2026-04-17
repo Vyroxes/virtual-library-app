@@ -1,6 +1,6 @@
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { authAxios } from '../utils/Auth';
+import { authAxios, getUsername } from '../utils/Auth';
 
 import './BookForm.css';
 
@@ -36,6 +36,16 @@ const BookForm = ({ mode }) => {
         "fantasy", "science-fiction", "horror", "romans", "thriller", "kryminał", "historia", "poradnik", "dla dzieci", "dla młodzieży", "komiks", "manga", "na podstawie gry", "lektura", "beletrystyka", "poezja", "erotyczne", "literatura piękna", "przygoda", "sensacja", "biografia", "reportaż", "popularnonaukowe"
     ];
 
+    const PLAN_LIMITS = {
+        "FREE": 50,
+        "PREMIUM": 100,
+        "PREMIUM+": 200
+    };
+
+    const [userPlan, setUserPlan] = useState("FREE");
+    const [currentCount, setCurrentCount] = useState(0);
+    const [planLoading, setPlanLoading] = useState(true);
+
     useEffect(() => {
         setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
@@ -45,6 +55,29 @@ const BookForm = ({ mode }) => {
             checkBookID();
         }
     }, []);
+
+    useEffect(() => {
+        const fetchPlanAndCount = async () => {
+            try {
+                const currentUsername = sessionStorage.getItem("username");
+                const type = location.pathname === "/bc-add-book" ? "bc" : "wl";
+
+                const userResponse = await authAxios.get(`${apiUrl}/api/user/${currentUsername}`);
+                const booksResponse = await authAxios.get(`${apiUrl}/api/${currentUsername}/${type}`);
+
+                setUserPlan(userResponse.data.premium || "FREE");
+                setCurrentCount(Array.isArray(booksResponse.data) ? booksResponse.data.length : 0);
+            } catch (error) {
+                console.error("Błąd podczas pobierania limitu książek:", error);
+                setUserPlan("FREE");
+                setCurrentCount(0);
+            } finally {
+                setPlanLoading(false);
+            }
+        };
+
+        fetchPlanAndCount();
+    }, [apiUrl, location.pathname]);
 
     useEffect(() => {
         if (mode === "edit" && book && Object.keys(book).length > 0) {
@@ -170,6 +203,12 @@ const BookForm = ({ mode }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (mode === "add" && !canAddBook) {
+            alert(`Osiągnięto limit ${currentLimit} książek dla planu ${userPlan}.`);
+            return;
+        }
+
         if (checkedList.length === 0) {
             alert("Musisz wybrać przynajmniej jeden gatunek.");
             return;
@@ -297,15 +336,31 @@ const BookForm = ({ mode }) => {
         reader.readAsText(file);
     };
 
+    const currentLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS.FREE;
+    const canAddBook = currentCount < currentLimit;
+
     const processJsonFile = async () => {
         if (!jsonFileContent) {
             alert("Najpierw wybierz plik JSON.");
             return;
         }
 
+        if (planLoading) {
+            alert("Poczekaj, aż załaduje się limit konta.");
+            return;
+        }
+
         setIsProcessing(true);
 
         try {
+            const currentLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS.FREE;
+            const remainingSlots = currentLimit - currentCount;
+
+            if (remainingSlots <= 0) {
+                alert(`Osiągnięto limit ${currentLimit} książek dla planu ${userPlan}.`);
+                return;
+            }
+
             const jsonData = JSON.parse(jsonFileContent);
             
             if (jsonData["book-collection"] || jsonData["wish-list"]) {
@@ -346,56 +401,50 @@ const BookForm = ({ mode }) => {
                 }
 
                 if (booksToAdd.length > 0) {
+                    const booksToProcess = booksToAdd.slice(0, remainingSlots);
                     let addedCount = 0;
-                    let bookCount = booksToAdd.length;
-                    for (const book of booksToAdd) {
-                        let response;
-                        try {
-                            response = await onSubmitAdd(book);
 
-                            if (response.status === 201) {
-                                addedCount++;
-                            }
-                            else {
-                                bookCount--;
-                                console.error(`Błąd podczas dodawania książki "${book.title}."`);
-                            }
-                        } catch (error) {
-                            console.error(`Błąd podczas dodawania książki "${book.title}": `, error);
+                    for (const book of booksToProcess) {
+                    try {
+                        const response = await onSubmitAdd(book);
+
+                        if (response.status === 201) {
+                            addedCount++;
+                        } else {
+                            console.error(`Błąd podczas dodawania książki "${book.title}".`);
                         }
+                    } catch (error) {
+                        console.error(`Błąd podczas dodawania książki "${book.title}":`, error);
                     }
-                    
-                    if (addedCount === bookCount) {
-                        if (location.pathname === "/bc-add-book") {
-                            navigate('/book-collection');
-                        } else if (location.pathname === "/wl-add-book") {
-                            navigate('/wish-list');
-                        }
-                    } 
-                    else if (addedCount > 0) {
-                        alert(`Dodano ${addedCount} książek, ale wystąpiły błędy podczas dodawania pozostałych.`);
-                        if (location.pathname === "/bc-add-book") {
-                            navigate('/book-collection');
-                        } else if (location.pathname === "/wl-add-book") {
-                            navigate('/wish-list');
-                        }
-                    }
-                    else {
-                        alert("Nie udało się dodać żadnej książki.");
+                }
+
+                if (booksToAdd.length > remainingSlots) {
+                    alert(`Zaimportowano tylko ${remainingSlots} książek, bo osiągnięto limit planu ${userPlan}.`);
+                }
+
+                if (addedCount > 0) {
+                    alert(`Dodano ${addedCount} książek.`);
+                    if (location.pathname === "/bc-add-book") {
+                        navigate('/book-collection');
+                    } else if (location.pathname === "/wl-add-book") {
+                        navigate('/wish-list');
                     }
                 } else {
-                    alert("Nie znaleziono odpowiednich danych dla tej sekcji.");
+                    alert("Nie udało się dodać żadnej książki.");
                 }
             } else {
-                alert("Nieprawidłowy format pliku JSON.");
+                alert("Nie znaleziono odpowiednich danych dla tej sekcji.");
             }
-        } catch (error) {
-            console.error("Błąd podczas parsowania pliku JSON: ", error);
+        } else {
             alert("Nieprawidłowy format pliku JSON.");
-        } finally {
-            setIsProcessing(false);
         }
-    };
+    } catch (error) {
+        console.error("Błąd podczas parsowania pliku JSON:", error);
+        alert("Nieprawidłowy format pliku JSON.");
+    } finally {
+        setIsProcessing(false);
+    }
+};
 
     return (
         <div>
@@ -443,13 +492,13 @@ const BookForm = ({ mode }) => {
                                                 id='file'
                                                 name='file'
                                                 accept="application/json"
-                                                disabled={isProcessing}
+                                                disabled={isProcessing || planLoading}
                                                 onChange={(e) => handleJsonFileSelect(e.target.files[0])}
                                             />
                                         </label>
                                     </div>
                                     <div className="add-book-buttons2">
-                                        <button type="button" disabled={isProcessing} onClick={processJsonFile}>Dodaj książkę</button>
+                                        <button type="button" disabled={isProcessing || planLoading} onClick={processJsonFile}>Dodaj książkę</button>
                                         <button type="button" disabled={isProcessing} onClick={() => {setAddBookMethod("")}}>
                                             Anuluj
                                         </button>
@@ -658,7 +707,9 @@ const BookForm = ({ mode }) => {
                                         />
                                     </div>
                                     <div className="add-book-buttons">
-                                        <button type="submit">{mode === "edit" ? "Edytuj książkę" : "Dodaj książkę"}</button>
+                                        <button type="submit" disabled={mode === "add" && (planLoading || !canAddBook)}>
+                                            {mode === "edit" ? "Edytuj książkę" : "Dodaj książkę"}
+                                        </button>
                                         <button type="button" onClick={() => {
                                             if (mode === "edit") {
                                                 if(location.pathname.startsWith("/bc-edit-book/"))

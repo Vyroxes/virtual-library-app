@@ -158,7 +158,6 @@ const BookDetails = () => {
                     <h3>Data wydania: {book.date}</h3>
                     <h3>Liczba stron: {book.pages}</h3>
                     <h3>ISBN: {book.isbn}</h3>
-                    <h3>Recenzja: {book.rate || "-"}/10 - {book.review || "brak recenzji"}</h3>
                     <h4 className='book-details-info-desc'>Opis: {book.desc || "brak opisu"}</h4>
                 </div>
             </div>

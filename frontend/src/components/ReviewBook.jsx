@@ -173,7 +173,7 @@ const ReviewBook = () => {
                 })}
 
                 <span className="star-value">
-                    {value ? value.toFixed(1) : "Brak oceny"}
+                    {value ? value.toFixed(1) : "Brak"}
                 </span>
             </div>
         );

@@ -29,6 +29,16 @@ const AddBook = () =>
     const [pages, setPages] = useState("");
     const [desc, setDesc] = useState("");
 
+    const PLAN_LIMITS = {
+        "FREE": 50,
+        "PREMIUM": 100,
+        "PREMIUM+": 200
+    };
+
+    const [userPlan, setUserPlan] = useState("FREE");
+    const [currentCount, setCurrentCount] = useState(0);
+    const [planLoading, setPlanLoading] = useState(true);
+
     const apiUrl = import.meta.env.VITE_API_URL;
 
     const genresList = [
@@ -57,10 +67,32 @@ const AddBook = () =>
         "popularnonaukowe",
     ];
 
-    useEffect(() => 
-    {
+    useEffect(() => {
         setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
+
+    useEffect(() => {
+        const fetchPlanAndCount = async () => {
+            try {
+                const currentUsername = sessionStorage.getItem("username");
+                const type = location.pathname === "/bc-add-book" ? "bc" : "wl";
+
+                const userResponse = await authAxios.get(`${apiUrl}/api/user/${currentUsername}`);
+                const booksResponse = await authAxios.get(`${apiUrl}/api/${currentUsername}/${type}`);
+
+                setUserPlan(userResponse.data.premium || "FREE");
+                setCurrentCount(Array.isArray(booksResponse.data) ? booksResponse.data.length : 0);
+            } catch (error) {
+                console.error("Błąd podczas pobierania limitu książek:", error);
+                setUserPlan("FREE");
+                setCurrentCount(0);
+            } finally {
+                setPlanLoading(false);
+            }
+        };
+
+        fetchPlanAndCount();
+    }, [apiUrl, location.pathname]);
 
     const handleCoverSearch = async () => {
         setCoverSearchLoading(true);
@@ -147,6 +179,14 @@ const AddBook = () =>
         setIsProcessing(true);
 
         try {
+            const currentLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS.FREE;
+            const remainingSlots = currentLimit - currentCount;
+
+            if (remainingSlots <= 0) {
+                alert(`Osiągnięto limit ${currentLimit} książek dla planu ${userPlan}.`);
+                return;
+            }
+
             const jsonData = JSON.parse(jsonFileContent);
             
             if (jsonData["book-collection"] || jsonData["wish-list"]) {
@@ -186,10 +226,12 @@ const AddBook = () =>
                     });
                 }
 
+                const booksToProcess = booksToAdd.slice(0, remainingSlots);
+
                 if (booksToAdd.length > 0) {
                     let addedCount = 0;
                     let bookCount = booksToAdd.length;
-                    for (const book of booksToAdd) {
+                    for (const book of booksToProcess) {
                         let response;
                         try {
                             response = await onSubmit(book);
@@ -214,7 +256,10 @@ const AddBook = () =>
                         }
                     } 
                     else if (addedCount > 0) {
-                        alert(`Dodano ${addedCount} książek, ale wystąpiły błędy podczas dodawania pozostałych.`);
+                        if (booksToAdd.length > remainingSlots) {
+                            alert(`Zaimportowano tylko ${remainingSlots} książkę/książki/książek, bo osiągnięto limit planu ${userPlan}.`);
+                        }
+                        alert(`Dodano ${addedCount} książkę/książki/książek, ale wystąpiły błędy podczas dodawania pozostałych.`);
                         if (location.pathname === "/bc-add-book") {
                             navigate('/book-collection');
                         } else if (location.pathname === "/wl-add-book") {

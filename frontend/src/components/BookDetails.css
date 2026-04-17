@@ -51,13 +51,13 @@
     max-height: 700px;
     height: auto;
     object-fit: contain;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
     transition: all 0.5s ease;
     animation: fadeInUp 1.2s ease forwards;
 }
 
 .book-details-cover:hover img {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 15px 20px rgba(0, 0, 0, 0.3);
     border-color: rgba(76, 175, 80, 0.7);
 }
 

@@ -216,6 +216,17 @@ backend/
 * `stripe` – integracja płatności  
 * `pytest` – framework do testów  
 
+### Uruchamianie przez Docker
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose up --build
+```
+
+Frontend: `http://localhost:5173`
+Backend (API): `http://localhost:5000`
+
 ### Instalacja zależności
 
 Można je zainstalować pojedynczo z określoną wersją:
@@ -280,6 +291,9 @@ Frontend:
 cd src
 npm run dev
 ```
+
+Frontend: `http://localhost:5173`
+Backend (API): `http://localhost:5000`
 
 ---
 

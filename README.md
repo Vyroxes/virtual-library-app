@@ -215,17 +215,28 @@ backend/
 * `stripe` – integration with Stripe payment processing API
 * `pytest` – framework for writing and running tests
 
+### Run with Docker
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose up --build
+```
+
+Frontend: `http://localhost:5173`
+Backend (API): `http://localhost:5000`
+
 ### Installing dependencies
 
-  You can install them individually with specific versions:
-  ```bash
-  pip install Authlib==1.6.9 bcrypt==5.0.0 Flask==3.1.3 Flask-Bcrypt==1.0.1 Flask-Cors==6.0.2 Flask-Discord==0.1.69 Flask-JWT-Extended==4.7.1 Flask-Limiter==4.1.1 Flask-SQLAlchemy==3.1.1 Flask-Talisman==1.1.0 python-dotenv==1.2.2 pytz==2026.1.post1 requests==2.33.0 SQLAlchemy==2.0.48 stripe==15.0.0 pytest==8.4.2
-  ```
+You can install them individually with specific versions:
+```bash
+pip install Authlib==1.6.9 bcrypt==5.0.0 Flask==3.1.3 Flask-Bcrypt==1.0.1 Flask-Cors==6.0.2 Flask-Discord==0.1.69 Flask-JWT-Extended==4.7.1 Flask-Limiter==4.1.1 Flask-SQLAlchemy==3.1.1 Flask-Talisman==1.1.0 python-dotenv==1.2.2 pytz==2026.1.post1 requests==2.33.0 SQLAlchemy==2.0.48 stripe==15.0.0 pytest==8.4.2
+```
 
-  Or using `requirements.txt`:
-  ```bash
-  pip install -r requirements.txt
-  ```
+Or using `requirements.txt`:
+```bash
+pip install -r requirements.txt
+```
 
 ### Installation
 
@@ -279,6 +290,9 @@ Frontend:
 cd src
 npm run dev
 ```
+
+Frontend: `http://localhost:5173`
+Backend (API): `http://localhost:5000`
 
 ---
 

@@ -225,7 +225,7 @@ docker compose up --build
 
 Frontend: `http://localhost:5173`
 
-Backend (API): `http://localhost:5000`
+Backend: `http://localhost:5000`
 
 ### Installing dependencies
 
@@ -286,15 +286,15 @@ Backend:
 flask run
 ```
 
+`http://localhost:5000`
+
 Frontend:
 ```bash
 cd src
 npm run dev
 ```
 
-Frontend: `http://localhost:5173`
-
-Backend (API): `http://localhost:5000`
+`http://localhost:5173`
 
 ---
 

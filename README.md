@@ -1,3 +1,5 @@
+![CI](https://github.com/Vyroxes/virtual-library-app/actions/workflows/ci.yml/badge.svg)
+
 🇵🇱 [Polish version](README_PL.md)
 
 ## 📚 Virtual Library App

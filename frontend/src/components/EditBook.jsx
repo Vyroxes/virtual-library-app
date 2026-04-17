@@ -5,6 +5,32 @@ import { authAxios } from '../utils/Auth';
 
 import './AddBook.css';
 
+const genresList = [
+    "fantasy",
+    "science-fiction",
+    "horror",
+    "romans",
+    "thriller",
+    "kryminał",
+    "historia",
+    "poradnik",
+    "dla dzieci",
+    "dla młodzieży",
+    "komiks",
+    "manga",
+    "na podstawie gry",
+    "lektura",
+    "beletrystyka",
+    "poezja",
+    "erotyczne",
+    "literatura piękna",
+    "przygoda",
+    "sensacja",
+    "biografia",
+    "reportaż",
+    "popularnonaukowe",
+];
+
 const EditBook = () =>
 {
     const navigate = useNavigate();
@@ -29,37 +55,64 @@ const EditBook = () =>
 
     const { id } = useParams();
 
-    const genresList = [
-        "fantasy",
-        "science-fiction",
-        "horror",
-        "romans",
-        "thriller",
-        "kryminał",
-        "historia",
-        "poradnik",
-        "dla dzieci",
-        "dla młodzieży",
-        "komiks",
-        "manga",
-        "na podstawie gry",
-        "lektura",
-        "beletrystyka",
-        "poezja",
-        "erotyczne",
-        "literatura piękna",
-        "przygoda",
-        "sensacja",
-        "biografia",
-        "reportaż",
-        "popularnonaukowe",
-    ];
-
     const apiUrl = import.meta.env.VITE_API_URL;
 
-    useEffect(() => {
+    useEffect(() => 
+    {
+        const checkBookID = async () => 
+        {
+            try 
+            {
+                const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
+
+                const response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
+
+                if (response.status === 200) 
+                {
+                    if (response.data['exists'] === false) 
+                    {
+                        if (location.pathname.startsWith("/bc-edit-book/")) {
+                            navigate(`/bc-book-details/${id}`);
+                        } 
+                        else if (location.pathname.startsWith("/wl-edit-book/")) {
+                            navigate(`/wl-book-details/${id}`);
+                        }
+                    } 
+                    else 
+                    {
+                        const fetchBook = async () => 
+                        {
+                            try 
+                            {
+                                const response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
+
+                                if (response.status === 200) {
+                                    setBook(response.data);
+                                }
+                            } 
+                            catch (error) 
+                            {
+                                console.error('Błąd podczas pobierania szczegółów książki: ', error);
+                            }
+                        };
+
+                        await fetchBook();
+                    }
+                } 
+                else 
+                {
+                    navigate('/home');
+                }
+            } 
+            catch (error) 
+            {
+                console.error('Błąd podczas sprawdzania ID książki: ', error);
+                navigate('/home');
+            }
+        };
+
         checkBookID();
-    }, []);
+    }, [apiUrl, id, location.pathname, navigate]);
 
     useEffect(() => 
     {
@@ -98,6 +151,7 @@ const EditBook = () =>
                 setCoverSearchError("Brak wyników lub błąd odpowiedzi.");
             }
         } catch (error) {
+            console.error("Błąd podczas wyszukiwania okładek: ", error)
             setCoverSearchError("Błąd podczas wyszukiwania okładek.");
         } finally {
             setCoverSearchLoading(false);
@@ -109,54 +163,9 @@ const EditBook = () =>
         setShowCoverSearch(false);
     };
 
-    const checkBookID = async () => 
-    {
-        try 
-        {
-            let response;
-            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
-
-            response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
-
-            if (response.status === 200) {
-                if (response.data['exists'] === false) {
-                    if (location.pathname.startsWith("/bc-edit-book/")) {
-                        navigate(`/bc-book-details/${id}`);
-                    } else if (location.pathname.startsWith("/wl-edit-book/")) {
-                        navigate(`/wl-book-details/${id}`);
-                    }
-                } else {
-                    fetchBook();
-                }
-            } else {
-                navigate('/home');
-            }
-        } catch (error) {
-            console.error('Błąd podczas sprawdzania ID książki: ', error);
-            navigate('/home');
-        }
-    };
-
-    const fetchBook = async () => 
-    {
-        try 
-        {
-            let response;
-            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
-
-            response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
-
-            if (response.status === 200) {
-                setBook(response.data);
-            }
-        } catch (error) {
-            console.error('Błąd podczas pobierania szczegółów książki: ', error);
-        }
-    };
-
     useEffect(() => 
     {
-        setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
+        setGenres([...checkedList].sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
 
     const handleFileUpload = (file) =>
@@ -173,7 +182,7 @@ const EditBook = () =>
             setCover(reader.result);
         };
 
-        reader.onerror = () => {
+        reader.onerror = (error) => {
             console.error("Błąd podczas odczytu pliku: ", error);
             alert("Wystąpił problem z odczytem pliku.");
         };

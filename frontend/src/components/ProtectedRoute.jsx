@@ -33,7 +33,8 @@ const ProtectedRoute = ({ children }) => {
             try {
                 await isAuthenticated();
                 await authAxios.post(`${apiUrl}/api/activity`, {});
-            } catch {
+            } catch (error) {
+                console.error("Wystąpił błąd podczas pobierania aktywności użytkownika: ", error)
             }
         };
 

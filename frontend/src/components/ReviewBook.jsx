@@ -17,9 +17,53 @@ const ReviewBook = () => {
 
     const apiUrl = import.meta.env.VITE_API_URL;
 
-    useEffect(() => {
-        checkBookID();
-    }, []);
+    useEffect(() => 
+    {
+        const run = async () => 
+        {
+            try 
+            {
+                const type = location.pathname.startsWith("/bc-review-book/") ? "bc" : "wl";
+
+                const response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
+
+                if (response.status === 200) 
+                {
+                    if (response.data['exists'] === false) 
+                    {
+                        if (location.pathname.startsWith("/bc-review-book/")) {
+                            navigate(`/bc-book-details/${id}`);
+                        } 
+                        else if (location.pathname.startsWith("/wl-review-book/")) {
+                            navigate(`/wl-book-details/${id}`);
+                        }
+                    } 
+                    else 
+                    {
+                        const fetchBook = async () => 
+                        {
+                            const res = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
+                            setBook(res.data);
+                            setLoading(false);
+                        };
+
+                        await fetchBook();
+                    }
+                } 
+                else 
+                {
+                    navigate('/home');
+                }
+            } 
+            catch (error) 
+            {
+                console.error('Błąd podczas sprawdzania ID książki: ', error);
+                navigate('/home');
+            }
+        };
+
+        run();
+    }, [apiUrl, id, location.pathname, navigate]);
 
     useEffect(() => {
         if (book && Object.keys(book).length > 0) {
@@ -27,48 +71,6 @@ const ReviewBook = () => {
             setReview(book.review || "");
         }
     }, [book]);
-
-    const checkBookID = async () => {
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-review-book/") ? "bc" : "wl";
-
-            response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
-
-            if (response.status === 200) {
-                if (response.data['exists'] === false) {
-                    if (location.pathname.startsWith("/bc-review-book/")) {
-                        navigate(`/bc-book-details/${id}`);
-                    } else if (location.pathname.startsWith("/wl-review-book/")) {
-                        navigate(`/wl-book-details/${id}`);
-                    }
-                } else {
-                    fetchBook();
-                }
-            } else {
-                navigate('/home');
-            }
-        } catch (error) {
-            console.error('Błąd podczas sprawdzania ID książki: ', error);
-            navigate('/home');
-        }
-    };
-
-    const fetchBook = async () => {
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-review-book/") ? "bc" : "wl";
-
-            response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
-
-            if (response.status === 200) {
-                setBook(response.data);
-                setLoading(false);
-            }
-        } catch (error) {
-            console.error('Błąd podczas pobierania danych książki: ', error);
-        }
-    };
 
     const deleteReview = async () => {
         const confirmCancel = window.confirm("Czy na pewno chcesz usunąć recenzję?");

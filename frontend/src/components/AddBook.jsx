@@ -4,6 +4,32 @@ import { authAxios } from '../utils/Auth';
 
 import './AddBook.css';
 
+const genresList = [
+    "fantasy",
+    "science-fiction",
+    "horror",
+    "romans",
+    "thriller",
+    "kryminał",
+    "historia",
+    "poradnik",
+    "dla dzieci",
+    "dla młodzieży",
+    "komiks",
+    "manga",
+    "na podstawie gry",
+    "lektura",
+    "beletrystyka",
+    "poezja",
+    "erotyczne",
+    "literatura piękna",
+    "przygoda",
+    "sensacja",
+    "biografia",
+    "reportaż",
+    "popularnonaukowe",
+];
+
 const AddBook = () =>
 {
     const navigate = useNavigate();
@@ -41,34 +67,8 @@ const AddBook = () =>
 
     const apiUrl = import.meta.env.VITE_API_URL;
 
-    const genresList = [
-        "fantasy",
-        "science-fiction",
-        "horror",
-        "romans",
-        "thriller",
-        "kryminał",
-        "historia",
-        "poradnik",
-        "dla dzieci",
-        "dla młodzieży",
-        "komiks",
-        "manga",
-        "na podstawie gry",
-        "lektura",
-        "beletrystyka",
-        "poezja",
-        "erotyczne",
-        "literatura piękna",
-        "przygoda",
-        "sensacja",
-        "biografia",
-        "reportaż",
-        "popularnonaukowe",
-    ];
-
     useEffect(() => {
-        setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
+        setGenres([...checkedList].sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
 
     useEffect(() => {
@@ -111,6 +111,7 @@ const AddBook = () =>
                 setCoverSearchError("Brak wyników lub błąd odpowiedzi.");
             }
         } catch (error) {
+            console.error("Błąd podczas wyszukiwania okładek: ", error)
             setCoverSearchError("Błąd podczas wyszukiwania okładek.");
         } finally {
             setCoverSearchLoading(false);
@@ -136,7 +137,7 @@ const AddBook = () =>
             setCover(reader.result);
         };
 
-        reader.onerror = () => {
+        reader.onerror = (error) => {
             console.error("Błąd podczas odczytu pliku: ", error);
             alert("Wystąpił problem z odczytem pliku.");
         };
@@ -426,6 +427,10 @@ const AddBook = () =>
             }
         });
     };
+
+    if (planLoading) {
+        return <div>Ładowanie...</div>
+    }
 
     return (
         <div>

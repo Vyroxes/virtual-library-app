@@ -1,8 +1,34 @@
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { authAxios, getUsername } from '../utils/Auth';
+import { authAxios } from '../utils/Auth';
 
 import './BookForm.css';
+
+const genresList = [
+    "fantasy",
+    "science-fiction",
+    "horror",
+    "romans",
+    "thriller",
+    "kryminał",
+    "historia",
+    "poradnik",
+    "dla dzieci",
+    "dla młodzieży",
+    "komiks",
+    "manga",
+    "na podstawie gry",
+    "lektura",
+    "beletrystyka",
+    "poezja",
+    "erotyczne",
+    "literatura piękna",
+    "przygoda",
+    "sensacja",
+    "biografia",
+    "reportaż",
+    "popularnonaukowe",
+];
 
 const BookForm = ({ mode }) => {
     const navigate = useNavigate();
@@ -30,11 +56,7 @@ const BookForm = ({ mode }) => {
     const [date, setDate] = useState("");
     const [pages, setPages] = useState("");
     const [desc, setDesc] = useState("");
-    const [book, setBook] = useState([]);
-
-    const genresList = [
-        "fantasy", "science-fiction", "horror", "romans", "thriller", "kryminał", "historia", "poradnik", "dla dzieci", "dla młodzieży", "komiks", "manga", "na podstawie gry", "lektura", "beletrystyka", "poezja", "erotyczne", "literatura piękna", "przygoda", "sensacja", "biografia", "reportaż", "popularnonaukowe"
-    ];
+    const [book, setBook] = useState(null);
 
     const PLAN_LIMITS = {
         "FREE": 50,
@@ -47,14 +69,53 @@ const BookForm = ({ mode }) => {
     const [planLoading, setPlanLoading] = useState(true);
 
     useEffect(() => {
-        setGenres(checkedList.sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
+        setGenres([...checkedList].sort((a, b) => genresList.indexOf(a) - genresList.indexOf(b)).join(", "));
     }, [checkedList]);
 
     useEffect(() => {
-        if (mode === "edit") {
-            checkBookID();
-        }
-    }, []);
+        if (mode !== "edit") return;
+
+        const checkBookID = async () => {
+            try {
+                const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
+
+                const response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
+
+                if (response.status === 200) {
+                    if (!response.data.exists) {
+                        if (location.pathname.startsWith("/bc-edit-book/")) {
+                            navigate(`/bc-book-details/${id}`);
+                        } else {
+                            navigate(`/wl-book-details/${id}`);
+                        }
+                    } else {
+                        await fetchBook(type);
+                    }
+                } else {
+                    navigate('/home');
+                }
+            } catch (error) {
+                console.error('Błąd podczas sprawdzania ID książki: ', error);
+                navigate('/home');
+            }
+        };
+
+        const fetchBook = async (type) => {
+            setLoading(true);
+            try {
+                const response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
+                if (response.status === 200) {
+                    setBook(response.data);
+                }
+            } catch (error) {
+                console.error('Błąd podczas pobierania szczegółów książki: ', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkBookID();
+    }, [mode, apiUrl, id, location.pathname, navigate]);
 
     useEffect(() => {
         const fetchPlanAndCount = async () => {
@@ -80,7 +141,7 @@ const BookForm = ({ mode }) => {
     }, [apiUrl, location.pathname]);
 
     useEffect(() => {
-        if (mode === "edit" && book && Object.keys(book).length > 0) {
+        if (mode === "edit" && book) {
             setISBN(book.isbn);
             setCover(book.cover || "/unknown.jpg");
             setTitle(book.title);
@@ -95,7 +156,7 @@ const BookForm = ({ mode }) => {
             setDesc(book.desc);
             setCheckedList(book.genres.split(", "));
         }
-    }, [book]);
+    }, [book, mode]);
 
     const handleCoverSearch = async () => {
         setCoverSearchLoading(true);
@@ -111,6 +172,7 @@ const BookForm = ({ mode }) => {
                 setCoverSearchError("Brak wyników lub błąd odpowiedzi.");
             }
         } catch (error) {
+            console.error("Błąd podczas wyszukiwania okładek: ", error)
             setCoverSearchError("Błąd podczas wyszukiwania okładek.");
         } finally {
             setCoverSearchLoading(false);
@@ -132,46 +194,6 @@ const BookForm = ({ mode }) => {
         reader.onloadend = () => { setCover(reader.result); };
         reader.onerror = () => { alert("Wystąpił problem z odczytem pliku."); };
         reader.readAsDataURL(file);
-    };
-
-    const checkBookID = async () => {
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
-            response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
-            if (response.status === 200) {
-                if (response.data['exists'] === false) {
-                    if (location.pathname.startsWith("/bc-edit-book/")) {
-                        navigate(`/bc-book-details/${id}`);
-                    } else if (location.pathname.startsWith("/wl-edit-book/")) {
-                        navigate(`/wl-book-details/${id}`);
-                    }
-                } else {
-                    fetchBook();
-                }
-            } else {
-                navigate('/home');
-            }
-        } catch (error) {
-            console.error('Błąd podczas sprawdzania ID książki: ', error);
-            navigate('/home');
-        }
-    };
-
-    const fetchBook = async () => {
-        setLoading(true);
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-edit-book/") ? "bc" : "wl";
-            response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
-            if (response.status === 200) {
-                setBook(response.data);
-            }
-        } catch (error) {
-            console.error('Błąd podczas pobierania szczegółów książki: ', error);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const handleGenreChange = (event) => {

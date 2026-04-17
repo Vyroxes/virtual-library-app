@@ -75,8 +75,48 @@ const User = () => {
     };
 
     useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await authAxios.get(`${apiUrl}/api/user/${username}`, {
+                    withCredentials: true,
+                });
+
+                if (response.status === 200) {
+                    if (response.data.username && response.data.username !== username) {
+                        navigate(`/users/${response.data.username}`, { replace: true });
+                        return;
+                    }
+
+                    setEmail(response.data.email);
+                    setAvatarUrl(response.data.avatar_url);
+                    setGithubId(response.data.github_id);
+                    setDiscordId(response.data.discord_id);
+                    setPremium(response.data.premium);
+                    setPremiumExpiration(new Date(response.data.premium_expiration));
+                    setAccountCreated(new Date(response.data.account_created));
+
+                    setBookStats({
+                        collectionCount: response.data.book_collection.length,
+                        wishlistCount: response.data.wish_list.length,
+                        totalPages: response.data.book_collection.reduce(
+                            (total, book) => total + (book.pages || 0),
+                            0
+                        )
+                    });
+
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error("Błąd podczas pobierania danych użytkownika:", error);
+
+                if (error.response?.status === 404) {
+                    navigate('/home');
+                }
+            }
+        };
+
         fetchUserData();
-    }, [username]);
+    }, [username, apiUrl, navigate]);
 
     useEffect(() => {
         const interval = setInterval(() => {

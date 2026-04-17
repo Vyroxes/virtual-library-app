@@ -28,48 +28,66 @@ const Premium = () => {
 
     useEffect(() => {
         const loadData = async () => {
-            await checkSubscription();
+            try {
+                const response = await authAxios.get(`${apiUrl}/api/payments/status/${username}`);
 
-            const param = searchParams.get('status');
-
-            if (param) {
-                if (param === 'ok') {
-                    setPaymentMsg('Płatność zakończona sukcesem.');
+                if (response.status === 200) {
+                    if (response.data.has_premium) {
+                        setSubscription(response.data.subscription);
+                        setStatus(true);
+                    } 
+                    else if (response.data.subscription?.status === 'PENDING') {
+                        setSubscription(response.data.subscription);
+                        setStatus(false);
+                        setPaymentError('Trwa przetwarzanie płatności.');
+                    } 
+                    else {
+                        setSubscription(null);
+                        setStatus(false);
+                    }
                 }
 
-                if (param === 'cancelled') {
-                    setPaymentError('Płatność anulowana.');
-                    await handleCancel(true);
-                }
+                const param = searchParams.get('status');
 
-                navigate(window.location.pathname, { replace: true });
+                if (param) {
+                    if (param === 'ok') {
+                        setPaymentMsg('Płatność zakończona sukcesem.');
+                    }
+
+                    if (param === 'cancelled') {
+                        setPaymentError('Płatność anulowana.');
+
+                        try {
+                            const statusResponse = await authAxios.get(`${apiUrl}/api/payments/status/${username}`);
+                            const currentSub = statusResponse.data.subscription;
+
+                            const cancelResponse = await authAxios.post(
+                                `${apiUrl}/api/payments/set/${username}`,
+                                {
+                                    status: 'CANCELLED',
+                                    plan: currentSub?.plan
+                                },
+                                { withCredentials: true }
+                            );
+
+                            if (cancelResponse.status === 200) {
+                                setSubscription(null);
+                                setStatus(false);
+                            }
+                        } catch (error) {
+                            console.error("Błąd anulowania:", error);
+                        }
+                    }
+
+                    navigate(window.location.pathname, { replace: true });
+                }
+            } catch (error) {
+                console.error("Błąd podczas ładowania danych:", error);
             }
         };
 
         loadData();
-    }, [searchParams]);
-
-    const checkSubscription = async () => {
-        try {
-            const response = await authAxios.get(`${apiUrl}/api/payments/status/${username}`);
-
-            if (response.status === 200) {
-                if (response.data.has_premium) {
-                    setSubscription(response.data.subscription);
-                    setStatus(true);
-                } else if (response.data.subscription?.status === 'PENDING') {
-                    setSubscription(response.data.subscription);
-                    setStatus(false);
-                    setPaymentError('Trwa przetwarzanie płatności.');
-                } else {
-                    setSubscription(null);
-                    setStatus(false);
-                }
-            }
-        } catch (error) {
-            console.error("Błąd podczas sprawdzania subskrypcji:", error);
-        }
-    };
+    }, [apiUrl, username, searchParams, navigate]);
 
     const handlePayment = async (plan) => {
         try {

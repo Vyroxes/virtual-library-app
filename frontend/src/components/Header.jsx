@@ -39,7 +39,7 @@ const Header = () => {
         };
 
         fetchAvatar();
-    }, [username]);
+    }, [apiUrl, username]);
 
     const handleLogout = async () => {
         try {

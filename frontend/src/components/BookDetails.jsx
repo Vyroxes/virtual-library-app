@@ -15,50 +15,46 @@ const BookDetails = () => {
     const apiUrl = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
-        checkBookID();
-    }, []);
+        const checkBookID = async () => {
+            try {
+                const type = location.pathname.startsWith("/bc-book-details/") ? "bc" : "wl";
 
-    const checkBookID = async () => {
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-book-details/") ? "bc" : "wl";
+                const response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
 
-            response = await authAxios.get(`${apiUrl}/api/book-exists/${type}/${id}`);
-
-            if (response.status === 200) {
-                if (response.data['exists'] === false) {
-                    if (location.pathname.startsWith("/bc-book-details/")) {
-                        navigate('/book-collection');
-                    } else if (location.pathname.startsWith("/wl-book-details/")) {
-                        navigate('/wish-list');
+                if (response.status === 200) {
+                    if (response.data['exists'] === false) {
+                        if (location.pathname.startsWith("/bc-book-details/")) {
+                            navigate('/book-collection');
+                        } else if (location.pathname.startsWith("/wl-book-details/")) {
+                            navigate('/wish-list');
+                        }
+                    } else {
+                        await fetchBook(type);
                     }
                 } else {
-                    fetchBook();
+                    navigate('/home');
                 }
-            } else {
+            } catch (error) {
+                console.error('Błąd podczas sprawdzania ID książki: ', error);
                 navigate('/home');
             }
-        } catch (error) {
-            console.error('Błąd podczas sprawdzania ID książki: ', error);
-            navigate('/home');
-        }
-    };
+        };
 
-    const fetchBook = async () => {
-        try {
-            let response;
-            const type = location.pathname.startsWith("/bc-book-details/") ? "bc" : "wl";
+        const fetchBook = async (type) => {
+            try {
+                const response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
 
-            response = await authAxios.get(`${apiUrl}/api/book-details/${type}/${id}`);
-
-            if (response.status === 200) {
-                setBook(response.data);
-                setLoading(false);
+                if (response.status === 200) {
+                    setBook(response.data);
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Błąd podczas pobierania danych książki: ', error);
             }
-        } catch (error) {
-            console.error('Błąd podczas pobierania danych książki: ', error);
-        }
-    };
+        };
+
+        checkBookID();
+    }, [apiUrl, id, location.pathname, navigate]);
 
     const moveBook = async () => {
         const confirmMove = window.confirm(

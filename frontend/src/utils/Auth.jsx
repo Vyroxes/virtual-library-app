@@ -129,7 +129,8 @@ authAxios.interceptors.request.use(async (config) => {
     if (!isAuthEndpoint) {
         try {
             await ensureFreshToken();
-        } catch {
+        } catch (error) {
+            console.error("Wystąpił błąd podczas sprawdzania access tokenu: ", error)
         }
     }
 

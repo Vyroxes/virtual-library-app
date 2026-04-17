@@ -7,6 +7,32 @@ import { authAxios, getUsername } from '../utils/Auth';
 
 import './Books.css';
 
+const genresList = [
+    "fantasy",
+    "science-fiction",
+    "horror",
+    "romans",
+    "thriller",
+    "kryminał",
+    "historia",
+    "poradnik",
+    "dla dzieci",
+    "dla młodzieży",
+    "komiks",
+    "manga",
+    "na podstawie gry",
+    "lektura",
+    "beletrystyka",
+    "poezja",
+    "erotyczne",
+    "literatura piękna",
+    "przygoda",
+    "sensacja",
+    "biografia",
+    "reportaż",
+    "popularnonaukowe",
+];
+
 const Books = () =>
 {
     const navigate = useNavigate();
@@ -43,32 +69,6 @@ const Books = () =>
         minYear: 0,
         maxYear: 0,
     });
-
-    const genresList = [
-        "fantasy",
-        "science-fiction",
-        "horror",
-        "romans",
-        "thriller",
-        "kryminał",
-        "historia",
-        "poradnik",
-        "dla dzieci",
-        "dla młodzieży",
-        "komiks",
-        "manga",
-        "na podstawie gry",
-        "lektura",
-        "beletrystyka",
-        "poezja",
-        "erotyczne",
-        "literatura piękna",
-        "przygoda",
-        "sensacja",
-        "biografia",
-        "reportaż",
-        "popularnonaukowe",
-    ];
 
     const sortLabels = {
         idAsc: "ID: Rosnąco",
@@ -107,9 +107,41 @@ const Books = () =>
     const apiUrl = import.meta.env.VITE_API_URL;
     
     useEffect(() => {
+        const fetchBooks = async () => {
+            try {
+                const type = location.pathname.startsWith("/book-collection") ? "bc" : "wl";
+
+                const response = await authAxios.get(`${apiUrl}/api/${username}/${type}`);
+
+                if (response.status === 200) {
+                    setBooks(response.data);
+
+                    const minPages = Math.min(...response.data.map(b => b.pages));
+                    const maxPages = Math.max(...response.data.map(b => b.pages));
+                    const minYear = Math.min(...response.data.map(b => parseInt(b.date.split('-')[2])));
+                    const maxYear = Math.max(...response.data.map(b => parseInt(b.date.split('-')[2])));
+
+                    const calculatedBounds = { minPages, maxPages, minYear, maxYear };
+
+                    setInitialBounds({ ...calculatedBounds, genres: {} });
+                    setFilterCriteria(prev => ({
+                        ...prev,
+                        minPages,
+                        maxPages,
+                        minYear,
+                        maxYear
+                    }));
+                }
+            } catch (error) {
+                console.error('Błąd podczas ładowania książek:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         setLoading(true);
         fetchBooks();
-    }, [location.pathname]);
+    }, [location.pathname, apiUrl, username]);
 
     const toggleSelectionMode = () => {
         setIsSelectionMode((prev) => {
@@ -204,13 +236,13 @@ const Books = () =>
 
                 const calculatedBounds = { minPages, maxPages, minYear, maxYear };
                 setInitialBounds({ ...calculatedBounds, genres: {} });
-                setFilterCriteria({
-                    genres: filterCriteria.genres,
+                setFilterCriteria(prev => ({
+                    ...prev,
                     minPages,
                     maxPages,
                     minYear,
                     maxYear
-                });
+                }));
 
                 setLoading(false);
             }
@@ -243,58 +275,53 @@ const Books = () =>
     const currentCount = books.length;
     const canAddBook = currentCount < currentLimit;
 
-    const handleSortClick = () => 
-    {
-        const currentIndex = sortMethods.indexOf(sortMethod);
-        const nextIndex = (currentIndex + 1) % sortMethods.length;
-        setSortMethod(sortMethods[nextIndex]);
-    };
+    const filteredBooks = useMemo(() => {
+        return books
+            .filter(book => {
+                const matchesSearch = book.title?.toLowerCase().includes(search.toLowerCase()) || book.author?.toLowerCase().includes(search.toLowerCase());
+                
+                const bookGenres = book.genres.toLowerCase().split(', ').map(g => g.trim());
+                const selectedGenres = Object.keys(filterCriteria.genres).filter(g => filterCriteria.genres[g]);
+                const genreMatch = selectedGenres.length === 0 || selectedGenres.every(g => bookGenres.includes(g));
+                
+                const pagesMatch = book.pages >= filterCriteria.minPages && book.pages <= filterCriteria.maxPages;
 
-    const filteredBooks = books
-    .filter(book => {
-        const matchesSearch = book.title?.toLowerCase().includes(search.toLowerCase()) || book.author?.toLowerCase().includes(search.toLowerCase());
-        
-        const bookGenres = book.genres.toLowerCase().split(', ').map(g => g.trim());
-        const selectedGenres = Object.keys(filterCriteria.genres).filter(g => filterCriteria.genres[g]);
-        const genreMatch = selectedGenres.length === 0 || selectedGenres.every(g => bookGenres.includes(g));
-        
-        const pagesMatch = book.pages >= filterCriteria.minPages && book.pages <= filterCriteria.maxPages;
+                const dateParts = book.date.split('-');
+                const yearMatch = parseInt(dateParts[2]) >= filterCriteria.minYear && parseInt(dateParts[2]) <= filterCriteria.maxYear;
 
-        const dateParts = book.date.split('-');
-        const yearMatch = parseInt(dateParts[2]) >= filterCriteria.minYear && parseInt(dateParts[2]) <= filterCriteria.maxYear;
-
-        return matchesSearch && genreMatch && pagesMatch && yearMatch;
-    })
-    .sort((a, b) => {
-        switch (sortMethod) {
-            case 'idAsc':
-                return a.id - b.id;
-            case 'idDesc':
-                return b.id - a.id;
-            case 'titleAsc':
-                return a.title.localeCompare(b.title);
-            case 'titleDesc':
-                return b.title.localeCompare(a.title);
-            case 'authorAsc':
-                return a.author.localeCompare(b.author);
-            case 'authorDesc':
-                return b.author.localeCompare(a.author);
-            case 'dateAsc':
-                return new Date(a.date.split('-').reverse().join('-')) - new Date(b.date.split('-').reverse().join('-'));
-            case 'dateDesc':
-                return new Date(b.date.split('-').reverse().join('-')) - new Date(a.date.split('-').reverse().join('-'));
-            case 'pagesAsc':
-                return a.pages - b.pages;
-            case 'pagesDesc':
-                return b.pages - a.pages;
-            case 'rateAsc':
-                return a.rate - b.rate;
-            case 'rateDesc':
-                return b.rate - a.rate;
-            default:
-                return 0;
-        }
-    });
+                return matchesSearch && genreMatch && pagesMatch && yearMatch;
+            })
+            .sort((a, b) => {
+                switch (sortMethod) {
+                    case 'idAsc':
+                        return a.id - b.id;
+                    case 'idDesc':
+                        return b.id - a.id;
+                    case 'titleAsc':
+                        return a.title.localeCompare(b.title);
+                    case 'titleDesc':
+                        return b.title.localeCompare(a.title);
+                    case 'authorAsc':
+                        return a.author.localeCompare(b.author);
+                    case 'authorDesc':
+                        return b.author.localeCompare(a.author);
+                    case 'dateAsc':
+                        return new Date(a.date.split('-').reverse().join('-')) - new Date(b.date.split('-').reverse().join('-'));
+                    case 'dateDesc':
+                        return new Date(b.date.split('-').reverse().join('-')) - new Date(a.date.split('-').reverse().join('-'));
+                    case 'pagesAsc':
+                        return a.pages - b.pages;
+                    case 'pagesDesc':
+                        return b.pages - a.pages;
+                    case 'rateAsc':
+                        return a.rate - b.rate;
+                    case 'rateDesc':
+                        return b.rate - a.rate;
+                    default:
+                        return 0;
+                }
+            });
+    }, [books, search, sortMethod, filterCriteria])
 
     const isSearchButtonDisabled = search.trim() === "" || books.length === 0;
     const isDisabled = books.length === 0 || filteredBooks.length === 0;
@@ -377,7 +404,7 @@ const Books = () =>
         }
 
         return counts;
-    }, [genresList, selectedGenres, baseFilteredForFacets]);
+    }, [selectedGenres, baseFilteredForFacets]);
 
     if(loading) {
         return;
